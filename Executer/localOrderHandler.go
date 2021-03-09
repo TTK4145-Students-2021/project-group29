@@ -4,74 +4,107 @@ import "../Driver/elevio"
 import "fmt"
 import "../Assigner"
 
-func orderAbove(Elev e){
-	for fl:=e.Floor+1; fl<NumFloors;fl++{
+func ordersAbove(Elevator elev){
+	for floor := elev.Floor+1; floor<NumFloors; floor++{
 		for btn:=0; btn<NumButtons;btn++{
-			if e.OrderQueue[fl][btn]{
-				return 1;
+			if elev.OrderQueue[floor][btn]{
+				return true
 			}
 		}
 	}
-	return 0;
+	return false
 }
 
 
-func orderBelow(Elev e) {
-	for f:0; f<e.Floor; f++{
+func ordersBelow(Elevator elev) {
+	for floor := 0; floor<elev.Floor; floor++{
 		for btn:=0; btn<NumButtons;btn++{
-			if e.OrderQueue[fl][btn]{
-				return 1;
+			if elev.OrderQueue[floor][btn]{
+				return true
 			}
 		}
 	}
+	return false
 }
 
-func orderChooseDir(Elev e){
-	dir:= e.Dir;
-	switch dir {
+func chooseDirection(Elevator elev){
+	switch elev.Dir {
 		case MD_Up:
-			if orderAbove(e){
-				return DM_UP;
+			if ordersAbove(elev){
+				return MD_UP
+			} else if ordersBelow(elev){
+				return MD_DOWN
+			} else {
+				return MD_STOP
 			}
-			else if orderBelow(e){
-				return DM_DOWN;
+		case MD_DOWN:
+			if ordersBelow(elev){
+				return MD_DOWN
+			} else if ordersAbove(elev){
+				return MD_UP
+			} else {
+				return MD_STOP
 			}
-			else{
-				return DM_STOP;
-			}
-		case DM_DOWN:
-		case DM_STOP:
-			if orderBelow(e){
-				return DM_DOWN;
-			}
-			else if orderAbove(e){
-				return DM_UP;
-			}
-			else{
-				return DM_STOP;
+		case MD_STOP:
+			if ordersAbove(elev){
+				return MD_UP
+			} else if ordersAbove(elev){
+				return MD_DOWN
+			} else{
+				return MD_STOP
 			}
 	}
 }
 
 
-func orderShouldStop(Elev e) {
-	switch dir := e.Dir; dir {
+func shouldStop(Elevator elev) {
+	switch elev.Dir {
 	case MD_Down:
 		return 
-			e.OrderQueue[e.Floor][BT_HallDown] 	||
-			e.OrderQueue[e.Floor][BT_Cab] 		||
-			!orderBelow(e);
+			elev.OrderQueue[elev.Floor][BT_HallDown] 	||
+			elev.OrderQueue[elev.Floor][BT_Cab] 		||
+			!ordersBelow(elev)
 	case MD_Up:
 		return
-			e.orderAbove[e.Floor][BT_HallUp]   ||
-            e.requests[e.Floor][BT_Cab]  	   ||
-            !orderAbove(e);
+			elev.orderAbove[elev.Floor][BT_HallUp]   ||
+            elev.requests[elev.Floor][BT_Cab]  	   ||
+            !ordersAbove(elev)
 	case MD_Stop
 	default:
-		return 1;
+		return 1
 	}
 }
 
-func orderClearAtCurrentFloor() {
-	
+func clearOrdersAtCurrentFloor(Elevator elev) {
+	//Assuming that everyone enters at the current floor
+	/* for(Button btn = 0; btn < N_BUTTONS; btn++){
+            e.requests[e.floor][btn] = 0;
+        }
+        break;
+	*/
+	// Assuming that only those that want to travel in the current direction 
+    // enter the elevator, and keep waiting outside otherwise
+	elev.OrderQueue[elev.Floor][BT_Cab] = 0
+	switch dir := elev.Dir; dir {
+	case MD_UP:
+		elev.OrderQueue[elev.Floor][BT_HallUp] = 0
+		if (!orderAbove(elev)) {
+			elev.OrderQueue[elev.Floor][BT_HallDown] = 0
+		}
+		break;
+		
+	case DM_DOWN:
+		elev.OrderQueue[elev.Floor][BT_HallDown] = 0
+		if(!orderBelow(elev)) {
+			elev.OrderQueue[elev.Floor][BT_HallUp] = 0
+		}
+		break
+
+	case DM_STOP:
+	default:
+		elev.OrderQueue[elev.Floor][BT_HallUp]=0
+		elev.OrderQueue[elev.Floor][BT_HallDown]=0
+		break
+	}
+	return elev;
 }

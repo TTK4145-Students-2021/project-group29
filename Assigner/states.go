@@ -11,11 +11,8 @@ const (
 type Order struct {
 	Floor int
 	Finished bool
-	Confirm bool
-	Status int 
-	ButtonType int
-	Id int //??? to identify which elevator has taken the order
-	// Examples, do we need this? 
+	Confirmed bool 
+	Button elevio.ButtonType
 }
 
 
@@ -31,6 +28,5 @@ type Elev struct {
 	Dir elevio.MotorDirection //Both direction and elevator behaviour in this variable?
 	State ElevState
 	Online bool
-	OrderQueue []bool
-	// Order_queue?
+	OrderQueue []bool // Order_queue?
 }
