@@ -22,7 +22,7 @@ const (
     Idle ElevState = iota
     Moving
     DoorOpen
-)
+) // This is an enum in Go
 
 
 type Elev struct {
@@ -31,7 +31,6 @@ type Elev struct {
 	State ElevState
 	Online bool
 	Order_queue []Order
-	// Order_queue?
 }
 
 drv_buttons := make(chan elevio.ButtonEvent)
