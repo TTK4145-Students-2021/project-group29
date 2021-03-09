@@ -16,11 +16,21 @@ type Order struct {
 	// Examples
 }
 
+
+type ElevState int
+const (
+    Idle ElevState = iota
+    Moving
+    DoorOpen
+)
+
+
 type Elev struct {
-	floor int
-	state int //Both direction and elevator behaviour in this variable?
-	online bool
-	order_queue []Order
+	Floor int
+	Dir MotorDirection //Both direction and elevator behaviour in this variable?
+	State ElevState
+	Online bool
+	Order_queue []Order
 	// Order_queue?
 }
 
