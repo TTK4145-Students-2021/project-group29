@@ -1,120 +1,108 @@
 package Executer
 
-import  hw "../Driver/elevio"
-import "fmt"
-import "../Assigner"
-import "time"
+import (
+	"time"
 
-type ExecuterChannels struct {
-	newOrder chan Order
-	arrivedAtFloor chan int
-	stateUpdate chan Elevator
+	hw "../Driver/elevio"
 
-}
+	co "../Common"
+)
 
 func initalizeElevator() {
-	elev := Elevator{
-		Floor: hw.getFloor(),
-		Dir: MD_STOP,
-		State: Idle,
-		Online: true,
-		OrderQueue: [NumFloors][NumButtons]bool{},
+	floorChan := make(chan int)
+	elev := co.Elevator{
+		hw.PollFloorSensor(floorChan),
+		0,
+		0,
+		true,
+		[co.NumFloors][co.NumButtons]bool{},
 	}
 
 	return elev
+
 }
 
+func RunElevator(ch co.ExecuterChannels) {
 
-func runElevator(ch ExecuterChannels) {
+	elev := initializeElevator()
 
-	Elevator elev := initializeElevator()
-	ch.stateUpdate <- elev
-
-	// Timer in Go 
+	// Timer in Go
 	doorTimeout := time.NewTimer(3 * time.Second)
 	doorTimeout.Stop()
 
-
-
 	for {
-		select{
-		case newOrder <= ch.newOrder:
+		select {
+		case newOrder := <-ch.newOrder:
 			switch elev.State {
-				case Idle:
-					if (elev.Floor == newOrder.Floor) {
-						hw.SetDoorOpenLamp(true)	
-						elev.State = DoorOpen 
-					}
-					else {
-						elev.OrderQueue[newOrder.Floor][newOrder.ButtonType] = true
-						elev.Dir = localOrderHandler_chooseDirection(elev) // Denne må implementeres i LocalOrderHandler guro
-						hw.SetMotorDirection(elev.Dir)
-						elev.State = Moving
-					}
-					break
-
-				case Dooropen:
-					if (elev.Floor == newOrder.Floor) {
-						doorTimeout.Reset(3 * time.Second)
-					}
-					else {
-						elev.OrderQueue[newOrder.Floor][newOrder.ButtonType] = true
-					}
-					
-					break
-
-				case Moving:
+			case co.Idle:
+				if elev.Floor == newOrder.Floor {
+					hw.SetDoorOpenLamp(true)
+					elev.State = DoorOpen
+				} else {
 					elev.OrderQueue[newOrder.Floor][newOrder.ButtonType] = true
-					break
+					elev.Dir = chooseDirection(elev)
+					hw.SetMotorDirection(elev.Dir)
+					elev.State = Moving
+				}
+				break
 
+			case co.Dooropen:
+				if elev.Floor == newOrder.Floor {
+					doorTimeout.Reset(3 * time.Second)
+				} else {
+					elev.OrderQueue[newOrder.Floor][newOrder.ButtonType] = true
+				}
+
+				break
+
+			case co.Moving:
+				elev.OrderQueue[newOrder.Floor][newOrder.ButtonType] = true
+				break
 
 			}
-			ch.stateUpdate <- elev
-		
-		
-		case newFloor <= ch.arrivedAtFloor:
+
+		case newFloor := <-ch.arrivedAtFloor: // This channel do not need to be connected to orderAssigner
 			elev.Floor = newFloor
-			hw.setFloorIndicator(newFloor)
+			hw.SetFloorIndicator(newFloor)
 
 			switch elev.State {
-				case Moving:
-					if localOrderHandler_shouldStop(elev) { // Feil syntaks?
-						elev.Dir = MD_STOP
-						hw.SetMotorDirection(elev.Dir)
-						hw.SetDoorOpenLamp(true)
-						doorTimeout.Reset(3 * time.Second)
-						// Clear requests at current floor
-						elev.State = DoorOpen
-					}
-					break
-				default:
-					break
+			case co.Moving:
+				if shouldStop(elev) { //
+					elev.Dir = hw.MD_STOP
+					hw.SetMotorDirection(elev.Dir)
+					hw.SetDoorOpenLamp(true)
+					doorTimeout.Reset(3 * time.Second)
+
+					elev.State = DoorOpen
+					clearOrdersAtCurrentFloor(elev)
+					// Implement logic concering Order-states (Finished?)
+
+				}
+				break
+			default:
+				break
 			}
-			ch.stateUpdate <- elev
 
 		case <-doorTimeout.C:
 
 			switch elev.State {
-				case DoorOpen:
-					hw.SetDoorOpenLamp(false) // Setting door open lamp to 0 
-					elev.Dir = localOrderHandler_chooseDirection(elev) // Chooses direction from localOrderHandler
-					hw.SetMotorDirection(elev.Dir) // sets motor direction
+			case DoorOpen:
+				hw.SetDoorOpenLamp(false)        // Setting door open lamp to 0
+				elev.Dir = chooseDirection(elev) // Chooses direction from localOrderHandler
+				hw.SetMotorDirection(elev.Dir)   // sets motor direction
 
-					if (elev.Dir = MD_STOP) {
-						elev.State = Idle
-					}
-					else {
-						elev.State = Moving
-					}
-					break
+				if elev.Dir == MD_STOP {
+					elev.State = Idle
+				} else {
+					elev.State = Moving
+				}
+				break
 
-				default:
-					break
+			default:
+				break
 			}
 			ch.stateUpdate <- elev
 		}
 
-
-		
 	}
 }
