@@ -8,6 +8,20 @@ import (
 	. "../Common"
 )
 
+func setAllLights(elev Elevator) {
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons; btn++ {
+			if elev.OrderQueue[floor][btn] == true {
+				hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
+			} else {
+				hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
+			}
+		}
+	}
+}
+
+// Where should we use this?
+
 func checkForObstruction(obstructionChan chan bool, elev Elevator) {
 	for {
 		select {
@@ -36,7 +50,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 	// Initializing elevator
 	elev := Elevator{
-		Floor:      0, // Have to fix this to correct Floor value
+		Floor:      0, // Have to fix this to correct Floor value, but orker ikke nå
 		Dir:        hw.MD_Stop,
 		State:      IDLE,
 		Online:     true,
@@ -51,7 +65,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 	// Executing channels
 	go checkForObstruction(hwChan.HwObstruction, elev)
-	// go checkForNewOrders(orderChan.newOrder, elev)
 
 	// Timer in Go
 	doorTimeout := time.NewTimer(3 * time.Second)

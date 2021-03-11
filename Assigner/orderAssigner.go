@@ -5,12 +5,6 @@ import . "../Common"
 // import "fmt"
 
 func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
-	// In main
-	/*go elevio.PollButtons(drv_buttons)
-	go elevio.PollFloorSensor(drv_floors)
-	go elevio.PollObstructionSwitch(drv_obstr) // Should these go directly into Order_executer? No need for order_assigner to know about obstruction??
-	go elevio.PollStopButton(drv_stop)*/
-
 	for {
 		select {
 		case buttonPress := <-hwChan.HwButtons:
