@@ -1,10 +1,10 @@
 package Assigner
 
-import co "../Common"
+import . "../Common"
 
 // import "fmt"
 
-func assignOrder(hwChan co.HardwareChannels, exChan co.ExecuterChannels) {
+func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 	// In main
 	/*go elevio.PollButtons(drv_buttons)
 	go elevio.PollFloorSensor(drv_floors)
@@ -13,14 +13,9 @@ func assignOrder(hwChan co.HardwareChannels, exChan co.ExecuterChannels) {
 
 	for {
 		select {
-		case buttonPress := <-hwChan.hwButtons:
-			newOrder := co.Order{Floor: buttonPress.Floor, Finished: false, Button: buttonPress.Button}
-			exChan.newOrder <- newOrder
-			// Cost func
-
-			// case atFloor := <-hwChan.hwFloor:
-
-			//case obstructionPress := <-hwChan.hwObstruction:
+		case buttonPress := <-hwChan.HwButtons:
+			newOrder := Order{Floor: buttonPress.Floor, Finished: false, Button: buttonPress.Button}
+			orderChan.NewOrder <- newOrder
 
 			/*case updatedLocalElev := <-exChan.stateUpdate:
 			updateElevatorInfo(updatedLocalElev)*/

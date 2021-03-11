@@ -5,104 +5,122 @@ import (
 
 	hw "../Driver/elevio"
 
-	co "../Common"
+	. "../Common"
 )
 
-func initalizeElevator() {
-	floorChan := make(chan int)
-	elev := co.Elevator{
-		hw.PollFloorSensor(floorChan),
-		0,
-		0,
-		true,
-		[co.NumFloors][co.NumButtons]bool{},
+func checkForObstruction(obstructionChan chan bool, elev Elevator) {
+	for {
+		select {
+		case obstructionButton := <-obstructionChan:
+			elev.Obstructed = obstructionButton
+		}
 	}
-
-	return elev
-
 }
 
-func RunElevator(ch co.ExecuterChannels) {
+func enrollHardware(elev Elevator) {
 
-	elev := initializeElevator()
+	hw.SetFloorIndicator(elev.Floor) // Does it harm to set this more times than necessary?
+	hw.SetMotorDirection(elev.Dir)
+
+	switch elev.State {
+	case DOOROPEN:
+		hw.SetDoorOpenLamp(true)
+	case MOVING:
+		hw.SetDoorOpenLamp(false)
+	case IDLE:
+		hw.SetDoorOpenLamp(false)
+	}
+}
+
+func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
+
+	// Initializing elevator
+	elev := Elevator{
+		Floor:      0, // Have to fix this to correct Floor value
+		Dir:        hw.MD_Stop,
+		State:      IDLE,
+		Online:     true,
+		OrderQueue: [NumFloors][NumButtons]bool{},
+		Obstructed: false,
+	}
+
+	// Hardware channels
+	go hw.PollButtons(hwChan.HwButtons)
+	go hw.PollFloorSensor(hwChan.HwFloor)
+	go hw.PollObstructionSwitch(hwChan.HwObstruction)
+
+	// Executing channels
+	go checkForObstruction(hwChan.HwObstruction, elev)
+	// go checkForNewOrders(orderChan.newOrder, elev)
 
 	// Timer in Go
 	doorTimeout := time.NewTimer(3 * time.Second)
 	doorTimeout.Stop()
 
 	for {
-		select {
-		case newOrder := <-ch.newOrder:
-			switch elev.State {
-			case co.Idle:
+		switch elev.State {
+		case IDLE:
+			select {
+			case newOrder := <-orderChan.NewOrder:
 				if elev.Floor == newOrder.Floor {
-					hw.SetDoorOpenLamp(true)
-					elev.State = DoorOpen
+					elev.State = DOOROPEN
+					enrollHardware(elev)
 				} else {
-					elev.OrderQueue[newOrder.Floor][newOrder.ButtonType] = true
+					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
+					elev.State = MOVING
 					elev.Dir = chooseDirection(elev)
-					hw.SetMotorDirection(elev.Dir)
-					elev.State = Moving
+					enrollHardware(elev)
 				}
 				break
-
-			case co.Dooropen:
-				if elev.Floor == newOrder.Floor {
-					doorTimeout.Reset(3 * time.Second)
-				} else {
-					elev.OrderQueue[newOrder.Floor][newOrder.ButtonType] = true
-				}
-
-				break
-
-			case co.Moving:
-				elev.OrderQueue[newOrder.Floor][newOrder.ButtonType] = true
-				break
-
 			}
+		case MOVING:
+			select {
+			case newOrder := <-orderChan.NewOrder:
+				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
+				break
+			case newFloor := <-hwChan.HwFloor:
+				elev.Floor = newFloor
+				enrollHardware(elev)
 
-		case newFloor := <-ch.arrivedAtFloor: // This channel do not need to be connected to orderAssigner
-			elev.Floor = newFloor
-			hw.SetFloorIndicator(newFloor)
-
-			switch elev.State {
-			case co.Moving:
-				if shouldStop(elev) { //
-					elev.Dir = hw.MD_STOP
-					hw.SetMotorDirection(elev.Dir)
-					hw.SetDoorOpenLamp(true)
+				if shouldStop(elev) {
+					elev.Dir = hw.MD_Stop
+					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
-
-					elev.State = DoorOpen
+					enrollHardware(elev)
 					clearOrdersAtCurrentFloor(elev)
-					// Implement logic concering Order-states (Finished?)
-
 				}
 				break
-			default:
-				break
 			}
-
-		case <-doorTimeout.C:
-
-			switch elev.State {
-			case DoorOpen:
-				hw.SetDoorOpenLamp(false)        // Setting door open lamp to 0
-				elev.Dir = chooseDirection(elev) // Chooses direction from localOrderHandler
-				hw.SetMotorDirection(elev.Dir)   // sets motor direction
-
-				if elev.Dir == MD_STOP {
-					elev.State = Idle
+		case DOOROPEN:
+			select {
+			case newOrder := <-orderChan.NewOrder:
+				if elev.Floor == newOrder.Floor {
+					elev.State = DOOROPEN
+					doorTimeout.Reset(3 * time.Second)
+					enrollHardware(elev)
 				} else {
-					elev.State = Moving
+					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				}
 				break
+			case <-doorTimeout.C:
+				elev.Dir = chooseDirection(elev)
 
-			default:
+				if elev.Obstructed {
+					doorTimeout.Reset(3 * time.Second)
+					elev.State = DOOROPEN
+					elev.Dir = hw.MD_Stop
+					enrollHardware(elev)
+				} else if elev.Dir == hw.MD_Stop {
+					elev.State = IDLE
+					enrollHardware(elev)
+				} else {
+					elev.State = MOVING
+					enrollHardware(elev)
+				}
 				break
 			}
-			ch.stateUpdate <- elev
-		}
 
+		}
+		orderChan.StateUpdate <- elev
 	}
 }

@@ -6,23 +6,21 @@ import hw "../Driver/elevio"
 
 const (
 	NumFloors  = 4
-	NumButtons = 10
+	NumButtons = 3
 )
 
 type Order struct {
-	Floor     int
-	Finished  bool
-	// Confirmed bool
-	Button    hw.ButtonType
-	// Id int 
+	Floor    int
+	Finished bool
+	Button   hw.ButtonType
 }
 
 type ElevState int
 
 const (
-	Idle ElevState = iota
-	Moving
-	DoorOpen
+	IDLE ElevState = iota
+	MOVING
+	DOOROPEN
 )
 
 type Elevator struct {
@@ -31,17 +29,17 @@ type Elevator struct {
 	State      ElevState
 	Online     bool
 	OrderQueue [NumFloors][NumButtons]bool // Order_queue?
+	Obstructed bool
 }
 
-type ExecuterChannels struct {
-	newOrder       chan Order
-	arrivedAtFloor chan int
-	stateUpdate    chan Elevator
+type OrderChannels struct {
+	NewOrder    chan Order
+	StateUpdate chan Elevator
 }
 
 type HardwareChannels struct {
-	hwButtons     chan hw.ButtonEvent
-	hwFloor       chan int
-	hwObstruction chan bool
-	hwStop        chan bool
+	HwButtons     chan hw.ButtonEvent
+	HwFloor       chan int
+	HwObstruction chan bool
+	HwStop        chan bool
 }

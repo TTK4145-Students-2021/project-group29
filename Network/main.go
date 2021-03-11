@@ -1,4 +1,4 @@
-package main
+/*package main
 
 import (
 	"./network/bcast"
@@ -79,3 +79,4 @@ func main() {
 		}
 	}
 }
+*/

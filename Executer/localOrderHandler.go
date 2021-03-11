@@ -1,10 +1,13 @@
 package Executer
 
-import co "../Common"
+import (
+	. "../Common"
+	hw "../Driver/elevio"
+)
 
-func ordersAbove(elev co.Elevator) {
-	for floor := elev.Floor + 1; floor < co.NumFloors; floor++ {
-		for btn := 0; btn < co.NumButtons; btn++ {
+func ordersAbove(elev Elevator) bool {
+	for floor := elev.Floor + 1; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons; btn++ {
 			if elev.OrderQueue[floor][btn] {
 				return true
 			}
@@ -13,9 +16,9 @@ func ordersAbove(elev co.Elevator) {
 	return false
 }
 
-func ordersBelow(elev co.Elevator) {
+func ordersBelow(elev Elevator) bool {
 	for floor := 0; floor < elev.Floor; floor++ {
-		for btn := 0; btn < co.NumButtons; btn++ {
+		for btn := 0; btn < NumButtons; btn++ {
 			if elev.OrderQueue[floor][btn] {
 				return true
 			}
@@ -24,82 +27,73 @@ func ordersBelow(elev co.Elevator) {
 	return false
 }
 
-func chooseDirection(elev co.Elevator) {
+func chooseDirection(elev Elevator) hw.MotorDirection {
 	switch elev.Dir {
-	case MD_Up:
+	case hw.MD_Up:
 		if ordersAbove(elev) {
-			return MD_UP
+			return hw.MD_Up
 		} else if ordersBelow(elev) {
-			return MD_DOWN
+			return hw.MD_Down
 		} else {
-			return MD_STOP
+			return hw.MD_Stop
 		}
-	case MD_DOWN:
+	case hw.MD_Down:
 		if ordersBelow(elev) {
-			return MD_DOWN
+			return hw.MD_Down
 		} else if ordersAbove(elev) {
-			return MD_UP
+			return hw.MD_Up
 		} else {
-			return MD_STOP
+			return hw.MD_Stop
 		}
-	case MD_STOP:
+	case hw.MD_Stop:
 		if ordersAbove(elev) {
-			return MD_UP
+			return hw.MD_Up
 		} else if ordersAbove(elev) {
-			return MD_DOWN
+			return hw.MD_Down
 		} else {
-			return MD_STOP
+			return hw.MD_Stop
 		}
 	}
+	return hw.MD_Stop
 }
 
-func shouldStop(elev co.Elevator) {
+func shouldStop(elev Elevator) bool {
 	switch elev.Dir {
-	case MD_Down:
-		return
-		elev.OrderQueue[elev.Floor][BT_HallDown] ||
-			elev.OrderQueue[elev.Floor][BT_Cab] ||
+	case hw.MD_Down:
+		return elev.OrderQueue[elev.Floor][hw.BT_HallDown] ||
+			elev.OrderQueue[elev.Floor][hw.BT_Cab] ||
 			!ordersBelow(elev)
-	case MD_Up:
-		return
-		elev.orderAbove[elev.Floor][BT_HallUp] ||
-			elev.requests[elev.Floor][BT_Cab] ||
+	case hw.MD_Up:
+		return elev.OrderQueue[elev.Floor][hw.BT_HallUp] ||
+			elev.OrderQueue[elev.Floor][hw.BT_Cab] ||
 			!ordersAbove(elev)
-	case MD_Stop:
-	default:
-		return 1
+	case hw.MD_Stop:
 	}
+	return true
 }
 
-func clearOrdersAtCurrentFloor(elev co.Elevator) {
-	//Assuming that everyone enters at the current floor
-	/* for(Button btn = 0; btn < N_BUTTONS; btn++){
-	       e.requests[e.floor][btn] = 0;
-	   }
-	   break;
-	*/
-	// Assuming that only those that want to travel in the current direction
-	// enter the elevator, and keep waiting outside otherwise
-	elev.OrderQueue[elev.Floor][BT_Cab] = 0
+func clearOrdersAtCurrentFloor(elev Elevator) {
+
+	elev.OrderQueue[elev.Floor][hw.BT_Cab] = false
 	switch dir := elev.Dir; dir {
-	case MD_UP:
-		elev.OrderQueue[elev.Floor][BT_HallUp] = 0
-		if !orderAbove(elev) {
-			elev.OrderQueue[elev.Floor][BT_HallDown] = 0
+	case hw.MD_Up:
+		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
+		if !ordersAbove(elev) {
+			elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
 		}
 		break
 
-	case DM_DOWN:
-		elev.OrderQueue[elev.Floor][BT_HallDown] = 0
-		if !orderBelow(elev) {
-			elev.OrderQueue[elev.Floor][BT_HallUp] = 0
+	case hw.MD_Down:
+		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
+		if !ordersBelow(elev) {
+			elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
 		}
 		break
 
-	case DM_STOP:
+	case hw.MD_Stop:
 	default:
-		elev.OrderQueue[elev.Floor][BT_HallUp] = 0
-		elev.OrderQueue[elev.Floor][BT_HallDown] = 0
+		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
+		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
 		break
 	}
 
