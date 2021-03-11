@@ -44,6 +44,16 @@ func enrollHardware(elev Elevator) {
 	case IDLE:
 		hw.SetDoorOpenLamp(false)
 	}
+
+	if !elev.Online {
+		hw.SetMotorDirection(hw.MD_Stop)
+		for i := 0; i < 5; i++ {
+			hw.SetStopLamp(true)
+			time.Sleep(200 * time.Millisecond)
+			hw.SetStopLamp(false)
+		}
+		hw.SetMotorDirection(elev.Dir)
+	}
 }
 
 func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
@@ -70,6 +80,10 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	doorTimeout := time.NewTimer(3 * time.Second)
 	doorTimeout.Stop()
 
+	// Check for engine failure
+	engineFailure := time.NewTimer(3 * time.Second)
+	engineFailure.Stop()
+
 	for {
 		switch elev.State {
 		case IDLE:
@@ -83,6 +97,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.State = MOVING
 					elev.Dir = chooseDirection(elev)
 					enrollHardware(elev)
+					engineFailure.Reset(3 * time.Second)
 				}
 				break
 			}
@@ -92,6 +107,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
 			case newFloor := <-hwChan.HwFloor:
+				elev.Online = true
 				elev.Floor = newFloor
 				enrollHardware(elev)
 
@@ -101,8 +117,17 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					doorTimeout.Reset(3 * time.Second)
 					enrollHardware(elev)
 					clearOrdersAtCurrentFloor(elev)
+					engineFailure.Stop()
+				} else {
+					engineFailure.Reset((3 * time.Second)) // If reached floor, reset engineFailure-timer
 				}
+
 				break
+			case <-engineFailure.C:
+				elev.Online = false
+				enrollHardware(elev)
+				engineFailure.Reset(5 * time.Second)
+
 			}
 		case DOOROPEN:
 			select {
@@ -125,15 +150,16 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					enrollHardware(elev)
 				} else if elev.Dir == hw.MD_Stop {
 					elev.State = IDLE
+					engineFailure.Stop()
 					enrollHardware(elev)
 				} else {
 					elev.State = MOVING
+					engineFailure.Reset((3 * time.Second)) // engineFailure resets whenever an elevator starts moving and has reached a floor.
 					enrollHardware(elev)
 				}
 				break
 			}
-
 		}
-		orderChan.StateUpdate <- elev
+		orderChan.StateUpdate <- elev // Have to implement these more places?
 	}
 }

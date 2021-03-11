@@ -5,8 +5,9 @@ import hw "../Driver/elevio"
 // import "fmt"
 
 const (
-	NumFloors  = 4
-	NumButtons = 3
+	NumFloors    = 4
+	NumButtons   = 3
+	NumElevators = 3
 )
 
 type Order struct {
