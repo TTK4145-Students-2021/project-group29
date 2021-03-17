@@ -117,6 +117,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					doorTimeout.Reset(3 * time.Second)
 					enrollHardware(elev)
 					clearOrdersAtCurrentFloor(elev)
+					// Here we need to set Order to Finished and send it to Assigner, so it can update global map
 					engineFailure.Stop()
 				} else {
 					engineFailure.Reset((3 * time.Second)) // If reached floor, reset engineFailure-timer
