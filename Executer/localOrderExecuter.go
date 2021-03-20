@@ -87,6 +87,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	for {
 		switch elev.State {
 		case IDLE:
+			
 			select {
 			case newOrder := <-orderChan.LocalOrder:
 				if elev.Floor == newOrder.Floor {

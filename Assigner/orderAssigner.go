@@ -4,6 +4,7 @@ import (
 	. "../Common"
 )
 
+// halla
 // import "fmt"
 // Handles all states
 var elevatorInfo Elevator

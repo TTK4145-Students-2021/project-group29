@@ -11,6 +11,8 @@ import (
 //"./Network/network/bcast"
 //"./Network/network/peers"
 
+//. "https://github.com/TTK4145-Students-2021/project-group29/tree/oneElev/Common"
+
 func main() {
 
 	// Making all channels (evt. make a function "InitializeChannels")
