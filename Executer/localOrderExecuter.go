@@ -1,6 +1,7 @@
 package Executer
 
 import (
+	"fmt"
 	"time"
 
 	hw "../Driver/elevio"
@@ -87,9 +88,10 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	for {
 		switch elev.State {
 		case IDLE:
-			
+
 			select {
 			case newOrder := <-orderChan.LocalOrder:
+				fmt.Println("Inside IDLE --- New order!")
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					enrollHardware(elev)
@@ -105,14 +107,17 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		case MOVING:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
+				fmt.Println("Inside MOVING --- New order, adding to queue!")
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
+				fmt.Println("Inside MOVING --- Detecting floor!")
 				elev.Online = true
 				elev.Floor = newFloor //remove this?? So that the code is alike
 				enrollHardware(elev)
 
 				if shouldStop(elev) {
+					fmt.Println("Stopping!")
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
@@ -126,6 +131,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 				break
 			case <-engineFailure.C:
+				fmt.Printf("Inside MOVING --- Engine failure!")
 				elev.Online = false
 				enrollHardware(elev)
 				engineFailure.Reset(5 * time.Second)
@@ -134,6 +140,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		case DOOROPEN:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
+				fmt.Println("Inside DOOROPEN --- New order!")
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
@@ -143,6 +150,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				}
 				break
 			case <-doorTimeout.C:
+				fmt.Println("Inside DOOROPEN --- Door timeout!")
 				elev.Dir = chooseDirection(elev)
 
 				if elev.Obstructed {
