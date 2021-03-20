@@ -3,50 +3,71 @@ package main
 import (
 	assigner "./Assigner"
 	. "./Common"
+	distributer "./Distribution"
 	hw "./Driver/elevio"
 	executer "./Executer"
-	"./Network/network/peers"
-	"./Network/network/bcast"
 )
+
+//"./Network/network/bcast"
+//"./Network/network/peers"
 
 func main() {
 
 	// Making all channels (evt. make a function "InitializeChannels")
+	/*
+		orderChan := OrderChannels{
+			NewOrder:    make(chan Order),
+			StateUpdate: make(chan Elevator),
+		}
+	*/
 	orderChan := OrderChannels{
-		NewOrder:    make(chan Order),
-		StateUpdate: make(chan Elevator),
+		//From assigner to distributer
+		SendOrder: make(chan Order),
+		//From distributer to assigner
+		OrderBackupUpdate: make(chan Order),
+		RecieveElevUpdate: make(chan Elevator),
+		//From distributor to executer
+		LocalOrder: make(chan Order),
+		//From executer to distributor
+		LocalElevUpdate: make(chan Elevator),
 	}
 
 	hwChan := HardwareChannels{
-		HwButtons:     make(chan hw.ButtonEvent),
+		//From elevio to orderassigner
+		HwButtons: make(chan hw.ButtonEvent),
+		//From elevio to executer
 		HwFloor:       make(chan int),
 		HwObstruction: make(chan bool),
-		HwStop:        make(chan bool),
+		// HwStop:        make(chan bool), //Implement this later
 	}
-
-	netChan := NetworkChannels {
-		PeerUpdateCh: make(chan peers.PeerUpdate),
-		PeerTxEnable: make(chan bool),
-		BcastMessage: make(chan Message),
-		RecieveMessage: make(chan Message)
-
-	} 
-
+	/*
+		netChan := NetworkChannels{
+			//Between OrderAssigner and Network
+			PeerUpdateCh: make(chan peers.PeerUpdate),
+			PeerTxEnable: make(chan bool),
+			//Between OrderDistributor and Network
+			BcastMessage:   make(chan Message),
+			RecieveMessage: make(chan Message),
+		}
+	*/
 	// Init hardware??
 	hw.Init("localhost:15657", NumFloors)
-
-	// Goroutine of runElevator
-	go executer.RunElevator(hwChan, orderChan)
 
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)
 
-	// Goroutine from Network module
-	go peers.Reciever(42035, netChan.PeerUpdateCh) 
-	go peers.Transmitter(42035), netChan.PeerTxEnable)
+	// Goroutine of Distributer
+	go distributer.SendToExe(orderChan)
 
-	go bcast.Reciever(42034, netChan.RecieveMessage)
-	go bcast.Transmitter(42034, netChan.BcastMessage)
+	// Goroutine of runElevator, in executer
+	go executer.RunElevator(hwChan, orderChan)
+	/*
+		// Goroutine from Network module
+		go peers.Reciever(42035, netChan.PeerUpdateCh)
+		go peers.Transmitter(42035, netChan.PeerTxEnable)
 
-	select{}
+		go bcast.Reciever(42034, netChan.RecieveMessage)
+		go bcast.Transmitter(42034, netChan.BcastMessage)
+	*/
+	select {}
 }

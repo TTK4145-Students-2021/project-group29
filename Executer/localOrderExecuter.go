@@ -8,6 +8,7 @@ import (
 	. "../Common"
 )
 
+//Moove to localOrderHandler??
 func setAllLights(elev Elevator) {
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
@@ -21,7 +22,6 @@ func setAllLights(elev Elevator) {
 }
 
 // Where should we use this?
-
 func checkForObstruction(obstructionChan chan bool, elev Elevator) {
 	for {
 		select {
@@ -88,7 +88,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		switch elev.State {
 		case IDLE:
 			select {
-			case newOrder := <-orderChan.NewOrder:
+			case newOrder := <-orderChan.LocalOrder:
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					enrollHardware(elev)
@@ -103,12 +103,12 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			}
 		case MOVING:
 			select {
-			case newOrder := <-orderChan.NewOrder:
+			case newOrder := <-orderChan.LocalOrder:
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
-			case newFloor := <-hwChan.HwFloor:
+			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
 				elev.Online = true
-				elev.Floor = newFloor
+				elev.Floor = newFloor //remove this?? So that the code is alike
 				enrollHardware(elev)
 
 				if shouldStop(elev) {
@@ -132,7 +132,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			}
 		case DOOROPEN:
 			select {
-			case newOrder := <-orderChan.NewOrder:
+			case newOrder := <-orderChan.LocalOrder:
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
@@ -161,6 +161,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				break
 			}
 		}
-		orderChan.StateUpdate <- elev // Have to implement these more places?
+		//Implement again when more than one elevator
+		//orderChan.StateUpdate <- elev // Have to implement these more places?
 	}
 }

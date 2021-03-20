@@ -11,9 +11,9 @@ const (
 )
 
 type Order struct {
-	Floor    int
-	Button   hw.ButtonType
-	Id int
+	Floor  int
+	Button hw.ButtonType
+	Id     int
 }
 
 type ElevState int
@@ -25,7 +25,7 @@ const (
 )
 
 type Elevator struct {
-	Id		   int 
+	Id         int
 	Floor      int
 	Dir        hw.MotorDirection //Both direction and elevator behaviour in this variable?
 	State      ElevState
@@ -35,9 +35,10 @@ type Elevator struct {
 }
 
 type LocalElevChannels struct {
-	LocalOrder    chan Order
+	LocalOrder      chan Order
 	LocalElevUpdate chan Elevator
 }
+
 // Have not changed these in localOrderExe
 
 type HardwareChannels struct {
@@ -46,20 +47,17 @@ type HardwareChannels struct {
 	HwObstruction chan bool
 }
 
-
-
-type Acknowledge int 
+type Acknowledge int
 
 const (
 	NotAck = iota - 1
 	Ack
-
 )
 
 type MessageType struct {
 	Order
 	Elevator
-	Acknowledge 
+	Acknowledge
 }
 
 type Message struct {
@@ -69,18 +67,28 @@ type Message struct {
 }
 
 type NetworkChannels struct {
-	PeerUpdateCh chan peers.PeerUpdate	
-	PeerTxEnable chan bool
-	BcastMessage chan Message
+	//PeerUpdateCh chan peers.PeerUpdate
+	PeerTxEnable   chan bool
+	BcastMessage   chan Message
 	RecieveMessage chan Message
 }
 
-
+/*
 type AssignerChannels struct {
 	RecieveElevUpdate chan Elevator
-	SendElevUpdate chan Elevator
+	SendElevUpdate    chan Elevator
 	OrderBackupUpdate chan Order
-	SendOrder chan Order
-	
+	SendOrder         chan Order
 }
-
+*/
+type OrderChannels struct {
+	//From assigner to distributer
+	SendOrder chan Order
+	//From distributer to assigner
+	OrderBackupUpdate chan Order
+	RecieveElevUpdate chan Elevator
+	//From distributor to executer
+	LocalOrder chan Order
+	//From executer to distributor
+	LocalElevUpdate chan Elevator
+}

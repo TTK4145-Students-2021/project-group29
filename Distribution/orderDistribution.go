@@ -5,9 +5,17 @@ package Distribution
 // messagetype, messageid, elevator, order
 import . "../Common"
 
-MessagesSentQueue [ID] msg 
-MessagesRecieved [ID] msg 
-// Find way to up ID number 
+func SendToExe(orderChan OrderChannels) {
+	select {
+	case newOrder := <-orderChan.SendOrder:
+		orderChan.LocalOrder <- newOrder
+	}
+}
+
+/*
+MessagesSentQueue [ID] msg
+MessagesRecieved [ID] msg
+// Find way to up ID number
 
 
 
@@ -17,10 +25,10 @@ func Distribute(channels) {
 		case sendElevUpdate := <- AssignerChannels.SendElevUpdate:
 			sendElevInfo()
 			// Add this to the MessageQueue
-		
+
 		case sendOrder := <-AssignerChannels.SendOrder:
 			sendOrder()
-		
+
 		case recieveMessage := <-NetworkChannels.RecieveMessage:
 			if recieveMessage.Msg == confirmMsg {
 				// Mark message as confirmed by message ID (++?)
@@ -47,19 +55,19 @@ func handleMessageQueue() {
 		// Iterate through the map
 		// If all peers have confirmed -> Pop from queue
 		// Send messages again
-		// Time sleep. 
+		// Time sleep.
 }
-	
+
 
 
 
 func sendConfirmation() {
 	msg = Message{
 		Msg = confirmMsg,
-		MessageId =, // What to add here 
+		MessageId =, // What to add here
 		ElevatorID = ,
-		Confirmed = 2 // Have to do something else here 
-	} 
+		Confirmed = 2 // Have to do something else here
+	}
 	BcastMessage <- msg
 }
 
@@ -74,10 +82,10 @@ func sendElevInfo(BcastMessage chan Message) {
 	// Sends elevator info to all the other elevators.
 	msg = Message{
 		Msg = stateMsg,
-		MessageId =, // What to add here 
+		MessageId =, // What to add here
 		ElevatorID = ,
 		Confirmed = 0
-	} 
+	}
 	BcastMessage <- msg
 }
 
@@ -97,18 +105,18 @@ func sendOrder(BcastMessage chan Message) {
 type MessageType struct { //This should be an enum
 	orderMsg Order
 	stateMsg Elevator
-	confirmMsg Acknowledge 
+	confirmMsg Acknowledge
 }
 
 type Message struct {
 	Msg        MessageType
 	MessageId  int
 	ElevatorId int
-	Confirmed int 
+	Confirmed int
 }
 
 type NetworkChannels struct {
-	PeerUpdateCh chan peers.PeerUpdate	
+	PeerUpdateCh chan peers.PeerUpdate
 	PeerTxEnable chan bool
 	BcastMessage chan Message
 	RecieveMessage chan Message
@@ -119,6 +127,7 @@ type AssignerChannels struct {
 	SendElevUpdate chan Elevator
 	OrderBackupUpdate chan Order
 	SendOrder chan Order
-	
+
 }
 
+*/
