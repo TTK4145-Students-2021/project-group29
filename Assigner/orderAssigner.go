@@ -1,6 +1,8 @@
 package Assigner
 
 import (
+	"fmt"
+
 	. "../Common"
 )
 
@@ -18,8 +20,9 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			// Send newOrder to Distribution
 			// Id = 1 // Here we find id to the one taking the order
 			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: 123}
+			fmt.Printf("%+v\n", newOrder)
 			orderChan.SendOrder <- newOrder
-
+			fmt.Println("Sending order from assigner to distributer")
 			/* Implement again when more elevators
 			case peerUpdate := PeerHandler:
 				// Reassign all orders here
@@ -84,7 +87,7 @@ func RemoveElevFromNetwork() {
 	// Only needs ID to the elevator that is lost
 	elev = ElevList[ID]
 	PeerHandler <- elev
-	// Sends all orders to Assigner through a channel
+	// Sends all orders to AssignCer through a channel
 }
 func AddElevToNetwork() {
 	// If PeersUpdate (p.New)

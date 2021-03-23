@@ -3,12 +3,20 @@ package Distribution
 // Duplicates, packet loss, confirmation,
 // Functions from Network
 // messagetype, messageid, elevator, order
-import . "../Common"
+import (
+	"fmt"
+
+	. "../Common"
+)
 
 func SendToExe(orderChan OrderChannels) {
-	select {
-	case newOrder := <-orderChan.SendOrder:
-		orderChan.LocalOrder <- newOrder
+	for {
+		select {
+		case newOrder := <-orderChan.SendOrder:
+
+			fmt.Println("Sending order from distributer to executer")
+			orderChan.LocalOrder <- newOrder
+		}
 	}
 }
 

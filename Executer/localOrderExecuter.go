@@ -9,6 +9,18 @@ import (
 	. "../Common"
 )
 
+func InitElev() {
+	hw.Init("localhost:15657", NumFloors)
+
+	hw.SetMotorDirection(hw.MD_Down)
+	for hw.GetFloor() != 0 {
+
+	}
+	hw.SetMotorDirection(hw.MD_Stop)
+	hw.SetFloorIndicator(0)
+	hw.SetDoorOpenLamp(false)
+}
+
 //Moove to localOrderHandler??
 func setAllLights(elev Elevator) {
 	for floor := 0; floor < NumFloors; floor++ {
@@ -23,14 +35,15 @@ func setAllLights(elev Elevator) {
 }
 
 // Where should we use this?
-func checkForObstruction(obstructionChan chan bool, elev Elevator) {
+/*func checkForObstruction(obstructionChan chan bool, elev Elevator) {
 	for {
 		select {
 		case obstructionButton := <-obstructionChan:
+			fmt.Println("checking checking cheking obstruction")
 			elev.Obstructed = obstructionButton
 		}
 	}
-}
+}*/
 
 func enrollHardware(elev Elevator) {
 
@@ -61,7 +74,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 	// Initializing elevator
 	elev := Elevator{
-		Floor:      0, // Have to fix this to correct Floor value, but orker ikke nå
+		Floor:      0,
 		Dir:        hw.MD_Stop,
 		State:      IDLE,
 		Online:     true,
@@ -69,13 +82,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		Obstructed: false,
 	}
 
-	// Hardware channels
-	go hw.PollButtons(hwChan.HwButtons)
-	go hw.PollFloorSensor(hwChan.HwFloor)
-	go hw.PollObstructionSwitch(hwChan.HwObstruction)
-
 	// Executing channels
-	go checkForObstruction(hwChan.HwObstruction, elev)
+	// go checkForObstruction(hwChan.HwObstruction, elev)
 
 	// Timer in Go
 	doorTimeout := time.NewTimer(3 * time.Second)
@@ -85,20 +93,24 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	engineFailure := time.NewTimer(3 * time.Second)
 	engineFailure.Stop()
 
+	var rememberDir hw.MotorDirection
+
 	for {
 		switch elev.State {
 		case IDLE:
-
+			fmt.Println("Inside IDLE")
+			rememberDir = elev.Dir
 			select {
 			case newOrder := <-orderChan.LocalOrder:
 				fmt.Println("Inside IDLE --- New order!")
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
+					doorTimeout.Reset(3 * time.Second)
 					enrollHardware(elev)
 				} else {
 					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 					elev.State = MOVING
-					elev.Dir = chooseDirection(elev)
+					elev.Dir = chooseDirection(elev, rememberDir)
 					enrollHardware(elev)
 					engineFailure.Reset(3 * time.Second)
 				}
@@ -118,11 +130,13 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 				if shouldStop(elev) {
 					fmt.Println("Stopping!")
+					elev = clearOrdersAtCurrentFloor(elev)
+					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
 					enrollHardware(elev)
-					clearOrdersAtCurrentFloor(elev)
+					fmt.Printf("%+v\n", elev)
 					// Here we need to set Order to Finished and send it to Assigner, so it can update global map
 					engineFailure.Stop()
 				} else {
@@ -150,15 +164,18 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				}
 				break
 			case <-doorTimeout.C:
+				elev.Obstructed = hw.GetObstruction()
 				fmt.Println("Inside DOOROPEN --- Door timeout!")
-				elev.Dir = chooseDirection(elev)
-
+				elev.Dir = chooseDirection(elev, rememberDir)
+				fmt.Printf("%+v\n", elev)
 				if elev.Obstructed {
-					doorTimeout.Reset(3 * time.Second)
+					fmt.Println("OBSTRUCTED!!!!!")
+					doorTimeout.Reset(3 * time.Second) // Does the door have to be open 3 seconds after not obstructed????
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					enrollHardware(elev)
 				} else if elev.Dir == hw.MD_Stop {
+					fmt.Println("Inside    elev.Dir == hw.MD_Stop")
 					elev.State = IDLE
 					engineFailure.Stop()
 					enrollHardware(elev)

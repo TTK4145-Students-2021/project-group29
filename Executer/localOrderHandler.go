@@ -5,8 +5,6 @@ import (
 	hw "../Driver/elevio"
 )
 
-
-
 func ordersAbove(elev Elevator) bool {
 	for floor := elev.Floor + 1; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
@@ -29,8 +27,8 @@ func ordersBelow(elev Elevator) bool {
 	return false
 }
 
-func chooseDirection(elev Elevator) hw.MotorDirection {
-	switch elev.Dir {
+func chooseDirection(elev Elevator, rememberDir hw.MotorDirection) hw.MotorDirection {
+	switch rememberDir {
 	case hw.MD_Up:
 		if ordersAbove(elev) {
 			return hw.MD_Up
@@ -50,7 +48,7 @@ func chooseDirection(elev Elevator) hw.MotorDirection {
 	case hw.MD_Stop:
 		if ordersAbove(elev) {
 			return hw.MD_Up
-		} else if ordersAbove(elev) {
+		} else if ordersBelow(elev) {
 			return hw.MD_Down
 		} else {
 			return hw.MD_Stop
@@ -74,10 +72,10 @@ func shouldStop(elev Elevator) bool {
 	return true
 }
 
-func clearOrdersAtCurrentFloor(elev Elevator) {
+func clearOrdersAtCurrentFloor(elev Elevator) Elevator {
 
 	elev.OrderQueue[elev.Floor][hw.BT_Cab] = false
-	switch dir := elev.Dir; dir {
+	switch elev.Dir {
 	case hw.MD_Up:
 		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
 		if !ordersAbove(elev) {
@@ -93,10 +91,11 @@ func clearOrdersAtCurrentFloor(elev Elevator) {
 		break
 
 	case hw.MD_Stop:
+	
 	default:
 		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
 		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
 		break
 	}
-
+	return elev
 }

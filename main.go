@@ -52,9 +52,12 @@ func main() {
 			RecieveMessage: make(chan Message),
 		}
 	*/
+	// Hardware channels
+	go hw.PollButtons(hwChan.HwButtons)
+	go hw.PollFloorSensor(hwChan.HwFloor)
+	go hw.PollObstructionSwitch(hwChan.HwObstruction)
 	// Init hardware??
-	hw.Init("localhost:15657", NumFloors)
-
+	executer.InitElev()
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)
 
