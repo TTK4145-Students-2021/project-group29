@@ -34,17 +34,6 @@ func setAllLights(elev Elevator) {
 	}
 }
 
-// Where should we use this?
-/*func checkForObstruction(obstructionChan chan bool, elev Elevator) {
-	for {
-		select {
-		case obstructionButton := <-obstructionChan:
-			fmt.Println("checking checking cheking obstruction")
-			elev.Obstructed = obstructionButton
-		}
-	}
-}*/
-
 func enrollHardware(elev Elevator) {
 
 	hw.SetFloorIndicator(elev.Floor) // Does it harm to set this more times than necessary?
@@ -98,11 +87,9 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	for {
 		switch elev.State {
 		case IDLE:
-			fmt.Println("Inside IDLE")
 			rememberDir = elev.Dir
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				fmt.Println("Inside IDLE --- New order!")
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
@@ -119,17 +106,14 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		case MOVING:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				fmt.Println("Inside MOVING --- New order, adding to queue!")
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
-				fmt.Println("Inside MOVING --- Detecting floor!")
 				elev.Online = true
 				elev.Floor = newFloor //remove this?? So that the code is alike
 				enrollHardware(elev)
 
 				if shouldStop(elev) {
-					fmt.Println("Stopping!")
 					elev = clearOrdersAtCurrentFloor(elev)
 					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop
@@ -145,7 +129,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 				break
 			case <-engineFailure.C:
-				fmt.Printf("Inside MOVING --- Engine failure!")
 				elev.Online = false
 				enrollHardware(elev)
 				engineFailure.Reset(5 * time.Second)
@@ -154,7 +137,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		case DOOROPEN:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				fmt.Println("Inside DOOROPEN --- New order!")
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
@@ -165,17 +147,14 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				break
 			case <-doorTimeout.C:
 				elev.Obstructed = hw.GetObstruction()
-				fmt.Println("Inside DOOROPEN --- Door timeout!")
 				elev.Dir = chooseDirection(elev, rememberDir)
 				fmt.Printf("%+v\n", elev)
 				if elev.Obstructed {
-					fmt.Println("OBSTRUCTED!!!!!")
 					doorTimeout.Reset(3 * time.Second) // Does the door have to be open 3 seconds after not obstructed????
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					enrollHardware(elev)
 				} else if elev.Dir == hw.MD_Stop {
-					fmt.Println("Inside    elev.Dir == hw.MD_Stop")
 					elev.State = IDLE
 					engineFailure.Stop()
 					enrollHardware(elev)
@@ -188,6 +167,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			}
 		}
 		//Implement again when more than one elevator
-		//orderChan.StateUpdate <- elev // Have to implement these more places?
+		//orderChan.LocalElevUpdate <- elev // Have to implement these more places?
 	}
 }
