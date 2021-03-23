@@ -4,8 +4,6 @@ package Distribution
 // Functions from Network
 // messagetype, messageid, elevator, order
 import (
-	"fmt"
-
 	. "../Common"
 )
 
@@ -14,8 +12,9 @@ func SendToExe(orderChan OrderChannels) {
 		select {
 		case newOrder := <-orderChan.SendOrder:
 
-			fmt.Println("Sending order from distributer to executer")
 			orderChan.LocalOrder <- newOrder
+		case localElevUpdate := <-orderChan.LocalElevUpdate:
+			orderChan.RecieveElevUpdate <- localElevUpdate
 		}
 	}
 }

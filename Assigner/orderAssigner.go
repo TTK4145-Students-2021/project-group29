@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	. "../Common"
+
+	hw "../Driver/elevio"
 )
 
 // halla
@@ -20,14 +22,37 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			// Send newOrder to Distribution
 			// Id = 1 // Here we find id to the one taking the order
 			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: 123}
-			fmt.Printf("%+v\n", newOrder)
+			//fmt.Printf("%+v\n", newOrder)
 			orderChan.SendOrder <- newOrder
-			fmt.Println("Sending order from assigner to distributer")
 			/* Implement again when more elevators
 			case peerUpdate := PeerHandler:
 				// Reassign all orders here
 				AssignerChannels.SendOrder <- newOrder
 			*/
+		}
+	}
+}
+
+func UpdateAssigner(orderChan OrderChannels) {
+	for {
+		select {
+		case updateLocalElev := <-orderChan.RecieveElevUpdate:
+			allElevators[0] = updateLocalElev
+			fmt.Printf("%v", allElevators)
+			setAllLights(allElevators[0])
+
+		}
+	}
+}
+
+func setAllLights(elev Elevator) {
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons; btn++ {
+			if elev.OrderQueue[floor][btn] == true {
+				hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
+			} else {
+				hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
+			}
 		}
 	}
 }

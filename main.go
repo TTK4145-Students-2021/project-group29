@@ -61,6 +61,8 @@ func main() {
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)
 
+	go assigner.UpdateAssigner(orderChan)
+
 	// Goroutine of Distributer
 	go distributer.SendToExe(orderChan)
 

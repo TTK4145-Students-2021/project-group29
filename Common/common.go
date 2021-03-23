@@ -7,7 +7,7 @@ import hw "../Driver/elevio"
 const (
 	NumFloors    = 4
 	NumButtons   = 3
-	NumElevators = 3
+	NumElevators = 1
 )
 
 type Order struct {

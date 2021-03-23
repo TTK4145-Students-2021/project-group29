@@ -1,7 +1,6 @@
 package Executer
 
 import (
-	"fmt"
 	"time"
 
 	hw "../Driver/elevio"
@@ -22,17 +21,7 @@ func InitElev() {
 }
 
 //Moove to localOrderHandler??
-func setAllLights(elev Elevator) {
-	for floor := 0; floor < NumFloors; floor++ {
-		for btn := 0; btn < NumButtons; btn++ {
-			if elev.OrderQueue[floor][btn] == true {
-				hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
-			} else {
-				hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
-			}
-		}
-	}
-}
+
 
 func enrollHardware(elev Elevator) {
 
@@ -120,7 +109,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
 					enrollHardware(elev)
-					fmt.Printf("%+v\n", elev)
+					//fmt.Printf("%+v\n", elev)
 					// Here we need to set Order to Finished and send it to Assigner, so it can update global map
 					engineFailure.Stop()
 				} else {
@@ -148,7 +137,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			case <-doorTimeout.C:
 				elev.Obstructed = hw.GetObstruction()
 				elev.Dir = chooseDirection(elev, rememberDir)
-				fmt.Printf("%+v\n", elev)
+				//fmt.Printf("%+v\n", elev)
 				if elev.Obstructed {
 					doorTimeout.Reset(3 * time.Second) // Does the door have to be open 3 seconds after not obstructed????
 					elev.State = DOOROPEN
@@ -167,6 +156,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			}
 		}
 		//Implement again when more than one elevator
-		//orderChan.LocalElevUpdate <- elev // Have to implement these more places?
+		orderChan.LocalElevUpdate <- elev // Have to implement these more places?
 	}
 }
