@@ -4,28 +4,153 @@ package Distribution
 // Functions from Network
 // messagetype, messageid, elevator, order
 import (
+	"os"
+	"time"
+
+	"fmt"
+
+	"strings"
+
 	. "../Common"
+	"../Network/localip"
 )
 
-func SendToExe(orderChan OrderChannels) {
+var MessageQueue []Message
+var CurrentConfirmations []string
+
+var PrevRxMsgIDs map[string]int
+var ArrayId []string
+
+//PrevRxMsgIDs := make(map[string]int) // When recieving message, check if ID is higher than prev recieved
+
+// Find way to up ID number
+
+func getElevIP() string {
+	// Adds elevator-ID (localIP + process ID)
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		fmt.Println(err)
+		localIP = "DISCONNECTED"
+	}
+	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
+	return id
+}
+
+func AddToMessageQueue(orderChan OrderChannels, netChan NetworkChannels) {
+	TxMsgID := 0
+	id := getElevIP()
+
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
+			elevMsg := new(Elevator)
 
-			orderChan.LocalOrder <- newOrder
+			msg := Message{
+				OrderMsg:    newOrder,
+				ElevatorMsg: elevMsg,
+				MsgType:     ORDER,
+				MessageId:   TxMsgID,
+				ElevatorId:  id,
+			}
+
+			MessageQueue[msg.MessageId] = msg
+			TxMsgID++
+
 		case localElevUpdate := <-orderChan.LocalElevUpdate:
-			orderChan.RecieveElevUpdate <- localElevUpdate
+			orderMsg := new(Order)
+
+			msg := Message{
+				OrderMsg:    orderMsg,
+				ElevatorMsg: localElevUpdate,
+				MsgType:     ELEVSTATUS,
+				MessageId:   TxMsgID,
+				ElevatorId:  id,
+			}
+
+			MessageQueue[msg.MessageId] = msg
+			TxMsgID++
+
+		}
+	}
+
+}
+
+func TxMessage(netChan NetworkChannels) {
+	for {
+		msg := MessageQueue[0] // First element in queue
+
+		if len(CurrentConfirmations) == NumElevators-1 {
+			MessageQueue = MessageQueue[1:] //Pop message from queue
+			CurrentConfirmations = make([]string, 0)
+		}
+		netChan.BcastMessage <- msg
+		time.Sleep(15 * time.Millisecond)
+
+	}
+
+}
+
+func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
+	id := getElevIP()
+	for {
+		select {
+		case rxMessage := <-netChan.RecieveMessage:
+			switch rxMessage.MsgType {
+			case ORDER:
+				isDuplicate := checkForDuplicate(rxMessage)
+				if !isDuplicate {
+					orderChan.OrderBackupUpdate <- rxMessage.OrderMsg
+					if rxMessage.OrderMsg.Id == id {
+						orderChan.LocalOrder <- rxMessage.OrderMsg
+					}
+				}
+				sendConfirmation(rxMessage, netChan)
+			case ELEVSTATUS:
+				isDuplicate := checkForDuplicate(rxMessage)
+				if !isDuplicate {
+					orderChan.RecieveElevUpdate <- rxMessage.ElevatorMsg
+				}
+				sendConfirmation(rxMessage, netChan)
+
+			case CONFIRMATION:
+
+				ArrayId := strings.SplitAfter(rxMessage.ElevatorId, "FROM")
+				fromId := ArrayId[1]
+				toId := ArrayId[0]
+
+				if toId == id {
+					CurrentConfirmations = append(CurrentConfirmations, fromId)
+				}
+
+			}
 		}
 	}
 }
 
+func sendConfirmation(rxMessage Message, netChan NetworkChannels) {
+	id := getElevIP()
+	msg := rxMessage
+	msg.MsgType = CONFIRMATION
+	msg.ElevatorId += "FROM" + id
+
+	netChan.BcastMessage <- msg
+}
+
+func checkForDuplicate(rxMessage Message) bool {
+	if prevMsgId, found := PrevRxMsgIDs[rxMessage.ElevatorId]; found {
+		if rxMessage.MessageId > prevMsgId {
+			PrevRxMsgIDs[rxMessage.ElevatorId] = rxMessage.MessageId
+			return false
+		}
+	} else {
+		PrevRxMsgIDs[rxMessage.ElevatorId] = rxMessage.MessageId
+		return false
+	}
+	return true
+
+}
+
 /*
-MessagesSentQueue [ID] msg
-MessagesRecieved [ID] msg
-// Find way to up ID number
-
-
-
 func Distribute(channels) {
 	for {
 		select{

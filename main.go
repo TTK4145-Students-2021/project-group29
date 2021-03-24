@@ -40,16 +40,14 @@ func main() {
 		HwObstruction: make(chan bool),
 		// HwStop:        make(chan bool), //Implement this later
 	}
-	/*
-		netChan := NetworkChannels{
-			//Between OrderAssigner and Network
-			PeerUpdateCh: make(chan peers.PeerUpdate),
-			PeerTxEnable: make(chan bool),
-			//Between OrderDistributor and Network
-			BcastMessage:   make(chan Message),
-			RecieveMessage: make(chan Message),
-		}
-	*/
+	netChan := NetworkChannels{
+		//Between OrderAssigner and Network
+		PeerUpdateCh: make(chan peers.PeerUpdate),
+		PeerTxEnable: make(chan bool),
+		//Between OrderDistributor and Network
+		BcastMessage:   make(chan Message),
+		RecieveMessage: make(chan Message),
+	}
 	// Hardware channels
 	go hw.PollButtons(hwChan.HwButtons)
 	go hw.PollFloorSensor(hwChan.HwFloor)
@@ -61,7 +59,7 @@ func main() {
 	go assigner.UpdateAssigner(orderChan)
 
 	// Goroutine of Distributer
-	go distributer.SendToExe(orderChan)
+	go distributer.DistributeOrders(orderChan, netChan)
 
 	// Goroutine of runElevator, in executer
 	go executer.RunElevator(hwChan, orderChan)

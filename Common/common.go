@@ -13,7 +13,7 @@ const (
 type Order struct {
 	Floor  int
 	Button hw.ButtonType
-	Id     int
+	Id     string
 }
 
 type ElevState int
@@ -30,11 +30,9 @@ type Elevator struct {
 	Dir        hw.MotorDirection //Both direction and elevator behaviour in this variable?
 	State      ElevState
 	Online     bool
-	OrderQueue [NumFloors][NumButtons]bool // Order_queue?
+	OrderQueue [..NumFloors][..NumButtons]bool // Order_queue?
 	Obstructed bool
 }
-
-
 
 type HardwareChannels struct {
 	HwButtons     chan hw.ButtonEvent
@@ -42,23 +40,20 @@ type HardwareChannels struct {
 	HwObstruction chan bool
 }
 
-type Acknowledge int
+type MessageType int
 
 const (
-	NotAck = iota - 1
-	Ack
+	ORDER MessageType = iota
+	ELEVSTATUS
+	CONFIRMATION
 )
 
-type MessageType struct {
-	Order
-	Elevator
-	Acknowledge
-}
-
 type Message struct {
-	Msg        MessageType
-	MessageId  int
-	ElevatorId int
+	OrderMsg    Order
+	ElevatorMsg Elevator
+	MsgType     MessageType
+	MessageId   int
+	ElevatorId  string
 }
 
 type NetworkChannels struct {
@@ -67,7 +62,6 @@ type NetworkChannels struct {
 	BcastMessage   chan Message
 	RecieveMessage chan Message
 }
-
 
 type OrderChannels struct {
 	//From assigner to distributer
