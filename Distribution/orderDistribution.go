@@ -129,12 +129,6 @@ type NetworkChannels struct {
 	RecieveMessage chan Message
 }
 
-type AssignerChannels struct {
-	RecieveElevUpdate chan Elevator
-	SendElevUpdate chan Elevator
-	OrderBackupUpdate chan Order
-	SendOrder chan Order
 
-}
 
 */

@@ -87,14 +87,6 @@ func getRecommendedExecuter() {
 
 }
 
-func updateElevatorInfo(elev Elevator) {
-	elevatorInfo.Floor = elev.Floor
-	elevatorInfo.Dir = elev.Dir
-	elevatorInfo.State = elev.State
-	elevatorInfo.Online = elev.Online
-	elevatorInfo.OrderQueue = elev.OrderQueue
-
-}
 
 
 func updateAllElevatorInfo(msg net.Message) {

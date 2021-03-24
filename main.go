@@ -15,13 +15,11 @@ import (
 
 func main() {
 
+	// Init hardware??
+	executer.InitElev()
+
 	// Making all channels (evt. make a function "InitializeChannels")
-	/*
-		orderChan := OrderChannels{
-			NewOrder:    make(chan Order),
-			StateUpdate: make(chan Elevator),
-		}
-	*/
+
 	orderChan := OrderChannels{
 		//From assigner to distributer
 		SendOrder: make(chan Order),
@@ -56,8 +54,7 @@ func main() {
 	go hw.PollButtons(hwChan.HwButtons)
 	go hw.PollFloorSensor(hwChan.HwFloor)
 	go hw.PollObstructionSwitch(hwChan.HwObstruction)
-	// Init hardware??
-	executer.InitElev()
+
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)
 

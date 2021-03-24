@@ -11,17 +11,28 @@ import (
 func InitElev() {
 	hw.Init("localhost:15657", NumFloors)
 
+	clearAllLights()
+
 	hw.SetMotorDirection(hw.MD_Down)
 	for hw.GetFloor() != 0 {
 
 	}
+
 	hw.SetMotorDirection(hw.MD_Stop)
 	hw.SetFloorIndicator(0)
+
+}
+
+func clearAllLights() {
 	hw.SetDoorOpenLamp(false)
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons; btn++ {
+			hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
+		}
+	}
 }
 
 //Moove to localOrderHandler??
-
 
 func enrollHardware(elev Elevator) {
 

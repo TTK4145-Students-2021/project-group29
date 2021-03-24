@@ -34,12 +34,7 @@ type Elevator struct {
 	Obstructed bool
 }
 
-type LocalElevChannels struct {
-	LocalOrder      chan Order
-	LocalElevUpdate chan Elevator
-}
 
-// Have not changed these in localOrderExe
 
 type HardwareChannels struct {
 	HwButtons     chan hw.ButtonEvent
@@ -73,14 +68,7 @@ type NetworkChannels struct {
 	RecieveMessage chan Message
 }
 
-/*
-type AssignerChannels struct {
-	RecieveElevUpdate chan Elevator
-	SendElevUpdate    chan Elevator
-	OrderBackupUpdate chan Order
-	SendOrder         chan Order
-}
-*/
+
 type OrderChannels struct {
 	//From assigner to distributer
 	SendOrder chan Order
