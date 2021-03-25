@@ -75,7 +75,7 @@ func TxMessage(netChan NetworkChannels) {
 
 			msg := MessageQueue[0] // First element in queue
 
-			if len(CurrentConfirmations) == NumElevators-1 {
+			if len(CurrentConfirmations) == NumElevators-1 { // Check which elevators that are offline
 				MessageQueue = MessageQueue[1:] //Pop message from queue
 				CurrentConfirmations = make([]string, 0)
 			}

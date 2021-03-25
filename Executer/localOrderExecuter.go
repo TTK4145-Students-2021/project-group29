@@ -63,6 +63,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 	// Initializing elevator
 	elev := Elevator{
+		Id: 		"UNDEFINED",
 		Floor:      0,
 		Dir:        hw.MD_Stop,
 		State:      IDLE,
@@ -90,6 +91,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			rememberDir = elev.Dir
 			select {
 			case newOrder := <-orderChan.LocalOrder:
+				elev.Id = newOrder.Id // Gets local ID from Peers
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)

@@ -6,20 +6,36 @@ import (
 	. "../Common"
 
 	hw "../Driver/elevio"
+
+	localip "../Network/localip"
+
+	"os"
 )
 
 // import "fmt"
 // Handles all states
 var elevatorInfo Elevator
-var allElevators [NumElevators]Elevator
+var allElevators map[string]Elevator
+var orderBackup map[string][]Order
+
+func GetElevIP() string {
+	// Adds elevator-ID (localIP + process ID)
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		fmt.Println(err)
+		localIP = "DISCONNECTED"
+	}
+	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
+	return id
+}
 
 func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 	for {
 		select {
 		case buttonPress := <-hwChan.HwButtons:
 			// Cost function returning ID of elevator taking the order
-
-			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: 123}
+			id := costFunction(allElevators)
+			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
 			//fmt.Printf("%+v\n", newOrder)
 			orderChan.SendOrder <- newOrder
 			/* Implement again when more elevators
@@ -34,13 +50,59 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 func UpdateAssigner(orderChan OrderChannels) {
 	for {
 		select {
-		case updateLocalElev := <-orderChan.RecieveElevUpdate:
-			allElevators[0] = updateLocalElev
+		case newOrder := <-orderChan.OrderBackupUpdate:
+			orderBackup[newOrder.Id] = append(orderBackup[newOrder.Id], newOrder)
+			// Make function that deletes orders from backup when finished
+
+		case updatedElev := <-orderChan.RecieveElevUpdate:
+			allElevators[updatedElev.Id] = updatedElev
 			fmt.Printf("%v", allElevators)
-			setAllLights(allElevators[0])
 
 		}
 	}
+}
+
+func PeerUpdate(netChan NetworkChannels) {
+	for {
+		select {
+		case p := <-netChan.PeerUpdateCh:
+			fmt.Printf("Peer update:\n")
+			fmt.Printf("  Peers:    %q\n", p.Peers)
+			fmt.Printf("  New:      %q\n", p.New)
+			fmt.Printf("  Lost:     %q\n", p.Lost)
+			for _, newPeer := range p.New {
+				if elev, found := allElevators[newPeer]; found { // If elevator is found again, going online
+					elev.Online = true
+					allElevators[newPeer] = elev
+				} else { // If elevator is new, needs to be created
+					elev := Elevator{
+						Id:         newPeer,
+						Floor:      0,
+						Dir:        hw.MD_Stop,
+						State:      IDLE,
+						Online:     true,
+						OrderQueue: [NumFloors][NumButtons]bool{},
+						Obstructed: false,
+					}
+					allElevators[newPeer] = elev
+				}
+			}
+			for _, lostPeer := range p.Lost { // If elevator is lost, going offline
+				elev := allElevators[lostPeer]
+				elev.Online = false
+				allElevators[lostPeer] = elev
+			}
+		}
+	}
+}
+
+func costFunction(allElev map[string]Elevator) string {
+	for id, _ := range allElev {
+		if id != GetElevIP() {
+			return id
+		}
+	}
+	return "error"
 }
 
 func setAllLights(elev Elevator) {

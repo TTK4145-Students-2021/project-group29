@@ -1,6 +1,9 @@
 package Common
 
-import hw "../Driver/elevio"
+import (
+	hw "../Driver/elevio"
+	peers "../Network/peers"
+)
 
 // import "fmt"
 
@@ -25,7 +28,7 @@ const (
 )
 
 type Elevator struct {
-	Id         string   
+	Id         string
 	Floor      int
 	Dir        hw.MotorDirection //Both direction and elevator behaviour in this variable?
 	State      ElevState
@@ -57,7 +60,7 @@ type Message struct {
 }
 
 type NetworkChannels struct {
-	//PeerUpdateCh chan peers.PeerUpdate
+	PeerUpdateCh   chan peers.PeerUpdate
 	PeerTxEnable   chan bool
 	BcastMessage   chan Message
 	RecieveMessage chan Message

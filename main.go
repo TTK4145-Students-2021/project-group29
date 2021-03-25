@@ -57,10 +57,13 @@ func main() {
 	// Goroutines of Network
 	go bcast.Reciever(42034, netChan.RecieveMessage)
 	go bcast.Transmitter(42034, netChan.BcastMessage)
+	go peers.Reciever(42035, netChan.PeerUpdateCh)
+	go peers.Transmitter(42035, assigner.GetElevIP(),  netChan.PeerTxEnable) 
 
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)
 	go assigner.UpdateAssigner(orderChan)
+	go assigner.PeerUpdate(netChan)
 
 	// Goroutine of Distributer
 	go distributer.AddToMessageQueue(netChan, orderChan)
@@ -69,10 +72,9 @@ func main() {
 
 	// Goroutine of runElevator, in executer
 	go executer.RunElevator(hwChan, orderChan)
-	
-	// Goroutine from Network module
-		//go peers.Reciever(42035, netChan.PeerUpdateCh)
-		//go peers.Transmitter(42035, netChan.PeerTxEnable)
+
+
+
 
 	
 	select {}
