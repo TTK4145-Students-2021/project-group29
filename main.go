@@ -6,6 +6,8 @@ import (
 	distributer "./Distribution"
 	hw "./Driver/elevio"
 	executer "./Executer"
+	bcast "./Network/bcast"
+	peers "./Network/peers"
 )
 
 //"./Network/network/bcast"
@@ -58,7 +60,7 @@ func main() {
 	go bcast.Reciever(42034, netChan.RecieveMessage)
 	go bcast.Transmitter(42034, netChan.BcastMessage)
 	go peers.Reciever(42035, netChan.PeerUpdateCh)
-	go peers.Transmitter(42035, assigner.GetElevIP(),  netChan.PeerTxEnable) 
+	go peers.Transmitter(42035, assigner.GetElevIP(), netChan.PeerTxEnable)
 
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)
@@ -73,9 +75,5 @@ func main() {
 	// Goroutine of runElevator, in executer
 	go executer.RunElevator(hwChan, orderChan)
 
-
-
-
-	
 	select {}
 }
