@@ -6,14 +6,9 @@ import (
 	distributer "./Distribution"
 	hw "./Driver/elevio"
 	executer "./Executer"
-	bcast "./Network/bcast"
-	peers "./Network/peers"
+	bcast "./Network/network/bcast"
+	peers "./Network/network/peers"
 )
-
-//"./Network/network/bcast"
-//"./Network/network/peers"
-
-//. "https://github.com/TTK4145-Students-2021/project-group29/tree/oneElev/Common"
 
 func main() {
 

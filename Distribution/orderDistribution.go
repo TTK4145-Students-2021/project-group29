@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	. "../Common"
-	
-	localip "../Network/localip"
+
+	localip "../Network/network/localip"
 )
 
 var MessageQueue []Message

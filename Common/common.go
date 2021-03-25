@@ -2,7 +2,7 @@ package Common
 
 import (
 	hw "../Driver/elevio"
-	peers "../Network/peers"
+	p "../Network/network/peers"
 )
 
 // import "fmt"
@@ -60,7 +60,7 @@ type Message struct {
 }
 
 type NetworkChannels struct {
-	PeerUpdateCh   chan peers.PeerUpdate
+	PeerUpdateCh   chan p.PeerUpdate
 	PeerTxEnable   chan bool
 	BcastMessage   chan Message
 	RecieveMessage chan Message

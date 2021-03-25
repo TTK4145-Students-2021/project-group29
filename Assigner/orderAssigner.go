@@ -7,13 +7,12 @@ import (
 
 	hw "../Driver/elevio"
 
-	localip "../Network/localip"
+	localip "../Network/network/localip"
 
 	"os"
 )
 
-// import "fmt"
-// Handles all states
+
 var elevatorInfo Elevator
 var allElevators map[string]Elevator
 var orderBackup map[string][]Order
