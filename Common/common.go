@@ -7,7 +7,7 @@ import hw "../Driver/elevio"
 const (
 	NumFloors    = 4
 	NumButtons   = 3
-	NumElevators = 1
+	NumElevators = 2
 )
 
 type Order struct {
@@ -25,12 +25,12 @@ const (
 )
 
 type Elevator struct {
-	Id         int
+	Id         string   
 	Floor      int
 	Dir        hw.MotorDirection //Both direction and elevator behaviour in this variable?
 	State      ElevState
 	Online     bool
-	OrderQueue [..NumFloors][..NumButtons]bool // Order_queue?
+	OrderQueue [NumFloors][NumButtons]bool // Order_queue?
 	Obstructed bool
 }
 

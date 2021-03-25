@@ -48,28 +48,32 @@ func main() {
 		BcastMessage:   make(chan Message),
 		RecieveMessage: make(chan Message),
 	}
-	// Hardware channels
+
+	// Goroutines of Hardware
 	go hw.PollButtons(hwChan.HwButtons)
 	go hw.PollFloorSensor(hwChan.HwFloor)
 	go hw.PollObstructionSwitch(hwChan.HwObstruction)
 
+	// Goroutines of Network
+	go bcast.Reciever(42034, netChan.RecieveMessage)
+	go bcast.Transmitter(42034, netChan.BcastMessage)
+
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)
-
 	go assigner.UpdateAssigner(orderChan)
 
 	// Goroutine of Distributer
-	go distributer.DistributeOrders(orderChan, netChan)
+	go distributer.AddToMessageQueue(netChan, orderChan)
+	go distributer.TxMessage(netChan)
+	go distributer.RxMessage(netChan, orderChan)
 
 	// Goroutine of runElevator, in executer
 	go executer.RunElevator(hwChan, orderChan)
-	/*
-		// Goroutine from Network module
-		go peers.Reciever(42035, netChan.PeerUpdateCh)
-		go peers.Transmitter(42035, netChan.PeerTxEnable)
+	
+	// Goroutine from Network module
+		//go peers.Reciever(42035, netChan.PeerUpdateCh)
+		//go peers.Transmitter(42035, netChan.PeerTxEnable)
 
-		go bcast.Reciever(42034, netChan.RecieveMessage)
-		go bcast.Transmitter(42034, netChan.BcastMessage)
-	*/
+	
 	select {}
 }

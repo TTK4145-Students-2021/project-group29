@@ -8,7 +8,6 @@ import (
 	hw "../Driver/elevio"
 )
 
-// halla
 // import "fmt"
 // Handles all states
 var elevatorInfo Elevator
@@ -18,9 +17,8 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 	for {
 		select {
 		case buttonPress := <-hwChan.HwButtons:
-			// Lots of cost functions
-			// Send newOrder to Distribution
-			// Id = 1 // Here we find id to the one taking the order
+			// Cost function returning ID of elevator taking the order
+
 			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: 123}
 			//fmt.Printf("%+v\n", newOrder)
 			orderChan.SendOrder <- newOrder

@@ -19,11 +19,6 @@ var MessageQueue []Message
 var CurrentConfirmations []string
 
 var PrevRxMsgIDs map[string]int
-var ArrayId []string
-
-//PrevRxMsgIDs := make(map[string]int) // When recieving message, check if ID is higher than prev recieved
-
-// Find way to up ID number
 
 func getElevIP() string {
 	// Adds elevator-ID (localIP + process ID)
@@ -36,8 +31,8 @@ func getElevIP() string {
 	return id
 }
 
-func AddToMessageQueue(orderChan OrderChannels, netChan NetworkChannels) {
-	TxMsgID := 0
+func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
+	TxMsgID := 0 // id iterator
 	id := getElevIP()
 
 	for {
@@ -47,20 +42,19 @@ func AddToMessageQueue(orderChan OrderChannels, netChan NetworkChannels) {
 
 			msg := Message{
 				OrderMsg:    newOrder,
-				ElevatorMsg: elevMsg,
+				ElevatorMsg: *elevMsg,
 				MsgType:     ORDER,
 				MessageId:   TxMsgID,
 				ElevatorId:  id,
 			}
 
 			MessageQueue[msg.MessageId] = msg
-			TxMsgID++
 
 		case localElevUpdate := <-orderChan.LocalElevUpdate:
 			orderMsg := new(Order)
 
 			msg := Message{
-				OrderMsg:    orderMsg,
+				OrderMsg:    *orderMsg,
 				ElevatorMsg: localElevUpdate,
 				MsgType:     ELEVSTATUS,
 				MessageId:   TxMsgID,
@@ -68,22 +62,27 @@ func AddToMessageQueue(orderChan OrderChannels, netChan NetworkChannels) {
 			}
 
 			MessageQueue[msg.MessageId] = msg
-			TxMsgID++
 
 		}
+		TxMsgID++
 	}
 
 }
 
 func TxMessage(netChan NetworkChannels) {
 	for {
-		msg := MessageQueue[0] // First element in queue
+		if len(MessageQueue) != 0 {
 
-		if len(CurrentConfirmations) == NumElevators-1 {
-			MessageQueue = MessageQueue[1:] //Pop message from queue
-			CurrentConfirmations = make([]string, 0)
+			msg := MessageQueue[0] // First element in queue
+
+			if len(CurrentConfirmations) == NumElevators-1 {
+				MessageQueue = MessageQueue[1:] //Pop message from queue
+				CurrentConfirmations = make([]string, 0)
+			}
+
+			netChan.BcastMessage <- msg
+
 		}
-		netChan.BcastMessage <- msg
 		time.Sleep(15 * time.Millisecond)
 
 	}
@@ -113,13 +112,20 @@ func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
 				sendConfirmation(rxMessage, netChan)
 
 			case CONFIRMATION:
-
 				ArrayId := strings.SplitAfter(rxMessage.ElevatorId, "FROM")
-				fromId := ArrayId[1]
 				toId := ArrayId[0]
+				fromId := ArrayId[1]
 
+				duplicateConfirm := false // make into a function?
 				if toId == id {
-					CurrentConfirmations = append(CurrentConfirmations, fromId)
+					for _, ConfirmedId := range CurrentConfirmations {
+						if ConfirmedId == fromId {
+							duplicateConfirm = true
+						}
+					}
+					if !duplicateConfirm {
+						CurrentConfirmations = append(CurrentConfirmations, fromId)
+					}
 				}
 
 			}
@@ -149,111 +155,3 @@ func checkForDuplicate(rxMessage Message) bool {
 	return true
 
 }
-
-/*
-func Distribute(channels) {
-	for {
-		select{
-		case sendElevUpdate := <- AssignerChannels.SendElevUpdate:
-			sendElevInfo()
-			// Add this to the MessageQueue
-
-		case sendOrder := <-AssignerChannels.SendOrder:
-			sendOrder()
-
-		case recieveMessage := <-NetworkChannels.RecieveMessage:
-			if recieveMessage.Msg == confirmMsg {
-				// Mark message as confirmed by message ID (++?)
-			} else {
-				handleDuplicates()
-
-				if recieveMessage.Msg == stateMsg {
-					AssignerChannels.RecieveElevUpdate <- recieveMessage.Msg
-				} else { // If it is an order
-					handleIncomingOrders(recieveMessage.Msg)
-				}
-				sendConfirmation()
-			}
-		}
-	}
-}
-
-func handleDuplicates()  {
-
-}
-
-func handleMessageQueue() {
-	for {
-		// Iterate through the map
-		// If all peers have confirmed -> Pop from queue
-		// Send messages again
-		// Time sleep.
-}
-
-
-
-
-func sendConfirmation() {
-	msg = Message{
-		Msg = confirmMsg,
-		MessageId =, // What to add here
-		ElevatorID = ,
-		Confirmed = 2 // Have to do something else here
-	}
-	BcastMessage <- msg
-}
-
-func handleIncomingOrders(newOrder Order) {
-	if newOrder.Id == Elev.Id {
-		LocalElevChannels.LocalOrder <- newOrder
-	}
-	AssignerChannels.OrderBackupUpdate <- newOrder
-}
-
-func sendElevInfo(BcastMessage chan Message) {
-	// Sends elevator info to all the other elevators.
-	msg = Message{
-		Msg = stateMsg,
-		MessageId =, // What to add here
-		ElevatorID = ,
-		Confirmed = 0
-	}
-	BcastMessage <- msg
-}
-
-func sendOrder(BcastMessage chan Message) {
-	msg = Message {
-		Msg = stateMsg,
-		MessageID = ,
-		ElevatorID = ,
-		Confirmed = 0,
-	}
-	BcastMessage <- msg
-}
-
-
-
-
-type MessageType struct { //This should be an enum
-	orderMsg Order
-	stateMsg Elevator
-	confirmMsg Acknowledge
-}
-
-type Message struct {
-	Msg        MessageType
-	MessageId  int
-	ElevatorId int
-	Confirmed int
-}
-
-type NetworkChannels struct {
-	PeerUpdateCh chan peers.PeerUpdate
-	PeerTxEnable chan bool
-	BcastMessage chan Message
-	RecieveMessage chan Message
-}
-
-
-
-*/
