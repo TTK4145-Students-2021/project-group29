@@ -15,6 +15,10 @@ func main() {
 	// Init hardware??
 	executer.InitElev()
 
+	assigner.AllElevators = make(map[string]Elevator)
+	assigner.OrderBackup = make(map[string][]Order)
+	distributer.PrevRxMsgIDs = make(map[string]int)
+
 	// Making all channels (evt. make a function "InitializeChannels")
 
 	orderChan := OrderChannels{

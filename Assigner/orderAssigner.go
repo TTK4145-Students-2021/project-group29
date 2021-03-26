@@ -12,9 +12,8 @@ import (
 	"os"
 )
 
-var elevatorInfo Elevator
-var allElevators map[string]Elevator
-var orderBackup map[string][]Order
+var AllElevators map[string]Elevator
+var OrderBackup map[string][]Order
 
 func GetElevIP() string {
 	// Adds elevator-ID (localIP + process ID)
@@ -28,13 +27,15 @@ func GetElevIP() string {
 }
 
 func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
+	// CONSIDER CHANGING TO SWITCH CASE TO AVOID SHARED VARIABLES
 	for {
 		select {
 		case buttonPress := <-hwChan.HwButtons:
 			// Cost function returning ID of elevator taking the order
-			id := costFunction(allElevators)
+			id := costFunction(AllElevators)
 			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
-			//fmt.Printf("%+v\n", newOrder)
+			fmt.Println("Sending new order to distributer, via SendOrder")
+			fmt.Printf("%+v\n", newOrder)
 			orderChan.SendOrder <- newOrder
 			/* Implement again when more elevators
 			case peerUpdate := PeerHandler:
@@ -49,12 +50,12 @@ func UpdateAssigner(orderChan OrderChannels) {
 	for {
 		select {
 		case newOrder := <-orderChan.OrderBackupUpdate:
-			orderBackup[newOrder.Id] = append(orderBackup[newOrder.Id], newOrder)
+			OrderBackup[newOrder.Id] = append(OrderBackup[newOrder.Id], newOrder)
 			// Make function that deletes orders from backup when finished
 
 		case updatedElev := <-orderChan.RecieveElevUpdate:
-			allElevators[updatedElev.Id] = updatedElev
-			fmt.Printf("%v", allElevators)
+			AllElevators[updatedElev.Id] = updatedElev
+
 
 		}
 	}
@@ -69,9 +70,9 @@ func PeerUpdate(netChan NetworkChannels) {
 			fmt.Printf("  New:      %q\n", p.New)
 			fmt.Printf("  Lost:     %q\n", p.Lost)
 			if p.New != "" {
-				if elev, found := allElevators[p.New]; found { // If elevator is found again, going online
+				if elev, found := AllElevators[p.New]; found { // If elevator is found again, going online
 					elev.Online = true
-					allElevators[p.New] = elev
+					AllElevators[p.New] = elev
 				} else { // If elevator is new, needs to be created
 					elev := Elevator{
 						Id:         p.New,
@@ -82,13 +83,15 @@ func PeerUpdate(netChan NetworkChannels) {
 						OrderQueue: [NumFloors][NumButtons]bool{},
 						Obstructed: false,
 					}
-					allElevators[p.New] = elev
+					AllElevators[p.New] = elev
 				}
 			}
-			for _, lostPeer := range p.Lost { // If elevator is lost, going offline
-				elev := allElevators[lostPeer]
-				elev.Online = false
-				allElevators[lostPeer] = elev
+			if len(p.Lost) > 0 {
+				for _, lostPeer := range p.Lost { // If elevator is lost, going offline
+					elev := AllElevators[lostPeer]
+					elev.Online = false
+					AllElevators[lostPeer] = elev
+				}
 			}
 		}
 	}
@@ -96,7 +99,7 @@ func PeerUpdate(netChan NetworkChannels) {
 
 func costFunction(allElev map[string]Elevator) string {
 	for id, _ := range allElev {
-		if id != GetElevIP() {
+		if id == GetElevIP() {
 			return id
 		}
 	}

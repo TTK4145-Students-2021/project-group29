@@ -1,4 +1,4 @@
-/*package main
+package main
 
 import "./elevio"
 import "fmt"
@@ -7,7 +7,7 @@ func main(){
 
     numFloors := 4
 
-    elevio.Init("localhost:15657", numFloors)
+    elevio.Init("localhost:15653", numFloors)
 
     var d elevio.MotorDirection = elevio.MD_Up
     //elevio.SetMotorDirection(d)
@@ -57,4 +57,4 @@ func main(){
         }
     }
 }
-*/
+

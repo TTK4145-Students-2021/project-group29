@@ -6,10 +6,12 @@ import (
 	hw "../Driver/elevio"
 
 	. "../Common"
+
+	"fmt"
 )
 
 func InitElev() {
-	hw.Init("localhost:15657", NumFloors)
+	hw.Init("localhost:15653", NumFloors)
 
 	clearAllLights()
 
@@ -38,15 +40,7 @@ func enrollHardware(elev Elevator) {
 
 	hw.SetFloorIndicator(elev.Floor) // Does it harm to set this more times than necessary?
 	hw.SetMotorDirection(elev.Dir)
-
-	switch elev.State {
-	case DOOROPEN:
-		hw.SetDoorOpenLamp(true)
-	case MOVING:
-		hw.SetDoorOpenLamp(false)
-	case IDLE:
-		hw.SetDoorOpenLamp(false)
-	}
+	hw.SetDoorOpenLamp(DOOROPEN == elev.State)
 
 	if !elev.Online {
 		hw.SetMotorDirection(hw.MD_Stop)
@@ -63,7 +57,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 	// Initializing elevator
 	elev := Elevator{
-		Id: 		"UNDEFINED",
+		Id:         "UNDEFINED",
 		Floor:      0,
 		Dir:        hw.MD_Stop,
 		State:      IDLE,
@@ -91,16 +85,15 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			rememberDir = elev.Dir
 			select {
 			case newOrder := <-orderChan.LocalOrder:
+				fmt.Println("Order recieved of executer")
 				elev.Id = newOrder.Id // Gets local ID from Peers
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
-					enrollHardware(elev)
 				} else {
 					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 					elev.State = MOVING
 					elev.Dir = chooseDirection(elev, rememberDir)
-					enrollHardware(elev)
 					engineFailure.Reset(3 * time.Second)
 				}
 				break
@@ -108,12 +101,12 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		case MOVING:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
+				fmt.Println("Order recieved of executer")
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
 				elev.Online = true
 				elev.Floor = newFloor //remove this?? So that the code is alike
-				enrollHardware(elev)
 
 				if shouldStop(elev) {
 					elev = clearOrdersAtCurrentFloor(elev)
@@ -121,7 +114,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
-					enrollHardware(elev)
 					//fmt.Printf("%+v\n", elev)
 					// Here we need to set Order to Finished and send it to Assigner, so it can update global map
 					engineFailure.Stop()
@@ -132,17 +124,16 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				break
 			case <-engineFailure.C:
 				elev.Online = false
-				enrollHardware(elev)
 				engineFailure.Reset(5 * time.Second)
 
 			}
 		case DOOROPEN:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
+				fmt.Println("Order recieved of executer")
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
-					enrollHardware(elev)
 				} else {
 					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				}
@@ -155,19 +146,18 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					doorTimeout.Reset(3 * time.Second) // Does the door have to be open 3 seconds after not obstructed????
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
-					enrollHardware(elev)
 				} else if elev.Dir == hw.MD_Stop {
 					elev.State = IDLE
 					engineFailure.Stop()
-					enrollHardware(elev)
 				} else {
 					elev.State = MOVING
 					engineFailure.Reset((3 * time.Second)) // engineFailure resets whenever an elevator starts moving and has reached a floor.
-					enrollHardware(elev)
 				}
 				break
 			}
 		}
+	
+		enrollHardware(elev)
 		//Implement again when more than one elevator
 		orderChan.LocalElevUpdate <- elev // Have to implement these more places?
 	}

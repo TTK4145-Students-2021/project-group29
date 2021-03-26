@@ -39,6 +39,7 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
+			fmt.Println("Order recieved from SendOrder, assigner")
 			elevMsg := new(Elevator)
 
 			msg := Message{
@@ -48,8 +49,11 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 				MessageId:   TxMsgID,
 				ElevatorId:  id,
 			}
+			MessageQueue = append(MessageQueue, msg)
+			fmt.Println("Map:", MessageQueue)
+			fmt.Println("Adding order to messagequeue")
 
-			MessageQueue[msg.MessageId] = msg
+			//MessageQueue[msg.MessageId] = msg
 
 		case localElevUpdate := <-orderChan.LocalElevUpdate:
 			orderMsg := new(Order)
@@ -62,7 +66,9 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 				ElevatorId:  id,
 			}
 
-			MessageQueue[msg.MessageId] = msg
+			MessageQueue = append(MessageQueue, msg)
+			fmt.Println("Adding elevstate to messagequeue")
+			//MessageQueue[msg.MessageId] = msg // denne refererer som at det skulle vært en map!
 
 		}
 		TxMsgID++
@@ -73,15 +79,18 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 func TxMessage(netChan NetworkChannels) {
 	for {
 		if len(MessageQueue) != 0 {
+			fmt.Println(MessageQueue)
 
 			msg := MessageQueue[0] // First element in queue
 
 			if len(CurrentConfirmations) == NumElevators-1 { // Check which elevators that are offline
 				MessageQueue = MessageQueue[1:] //Pop message from queue
 				CurrentConfirmations = make([]string, 0)
+		
+			} else {
+				fmt.Println("Message transmitted to network")
+				netChan.BcastMessage <- msg
 			}
-
-			netChan.BcastMessage <- msg
 
 		}
 		time.Sleep(15 * time.Millisecond)
@@ -97,6 +106,7 @@ func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
 		case rxMessage := <-netChan.RecieveMessage:
 			switch rxMessage.MsgType {
 			case ORDER:
+				fmt.Println("Order recieved from network")
 				isDuplicate := checkForDuplicate(rxMessage)
 				if !isDuplicate {
 					orderChan.OrderBackupUpdate <- rxMessage.OrderMsg
@@ -113,9 +123,10 @@ func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
 				sendConfirmation(rxMessage, netChan)
 
 			case CONFIRMATION:
-				ArrayId := strings.SplitAfter(rxMessage.ElevatorId, "FROM")
+				ArrayId := strings.Split(rxMessage.ElevatorId, "FROM")
 				toId := ArrayId[0]
 				fromId := ArrayId[1]
+
 
 				duplicateConfirm := false // make into a function?
 				if toId == id {
@@ -126,6 +137,7 @@ func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
 					}
 					if !duplicateConfirm {
 						CurrentConfirmations = append(CurrentConfirmations, fromId)
+
 					}
 				}
 
