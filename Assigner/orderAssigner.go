@@ -12,7 +12,6 @@ import (
 	"os"
 )
 
-
 var elevatorInfo Elevator
 var allElevators map[string]Elevator
 var orderBackup map[string][]Order
@@ -69,13 +68,13 @@ func PeerUpdate(netChan NetworkChannels) {
 			fmt.Printf("  Peers:    %q\n", p.Peers)
 			fmt.Printf("  New:      %q\n", p.New)
 			fmt.Printf("  Lost:     %q\n", p.Lost)
-			for _, newPeer := range p.New {
-				if elev, found := allElevators[newPeer]; found { // If elevator is found again, going online
+			if p.New != "" {
+				if elev, found := allElevators[p.New]; found { // If elevator is found again, going online
 					elev.Online = true
-					allElevators[newPeer] = elev
+					allElevators[p.New] = elev
 				} else { // If elevator is new, needs to be created
 					elev := Elevator{
-						Id:         newPeer,
+						Id:         p.New,
 						Floor:      0,
 						Dir:        hw.MD_Stop,
 						State:      IDLE,
@@ -83,7 +82,7 @@ func PeerUpdate(netChan NetworkChannels) {
 						OrderQueue: [NumFloors][NumButtons]bool{},
 						Obstructed: false,
 					}
-					allElevators[newPeer] = elev
+					allElevators[p.New] = elev
 				}
 			}
 			for _, lostPeer := range p.Lost { // If elevator is lost, going offline

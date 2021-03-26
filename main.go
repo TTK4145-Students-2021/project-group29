@@ -52,9 +52,9 @@ func main() {
 	go hw.PollObstructionSwitch(hwChan.HwObstruction)
 
 	// Goroutines of Network
-	go bcast.Reciever(42034, netChan.RecieveMessage)
+	go bcast.Receiver(42034, netChan.RecieveMessage)
 	go bcast.Transmitter(42034, netChan.BcastMessage)
-	go peers.Reciever(42035, netChan.PeerUpdateCh)
+	go peers.Receiver(42035, netChan.PeerUpdateCh)
 	go peers.Transmitter(42035, assigner.GetElevIP(), netChan.PeerTxEnable)
 
 	// Goroutine of Assigner
