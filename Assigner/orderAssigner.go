@@ -9,6 +9,8 @@ import (
 
 	localip "../Network/network/localip"
 
+	exe "../Executer"
+
 	"os"
 )
 
@@ -36,7 +38,7 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			fmt.Println("Sending new order to distributer, via SendOrder")
 			fmt.Printf("%+v\n", newOrder)
 			orderChan.SendOrder <- newOrder
-		
+
 		}
 	}
 }
@@ -50,7 +52,6 @@ func UpdateAssigner(orderChan OrderChannels) {
 
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
-
 
 		}
 	}
@@ -99,6 +100,36 @@ func costFunction(allElev map[string]Elevator) string {
 		}
 	}
 	return "error"
+}
+
+func timeToIdle(elev Elevator) int {
+	duration := 0
+	switch elev.State {
+	case IDLE:
+		elev.Dir = exe.ChooseDirection(elev, elev.Dir)
+		if elev.Dir == hw.MD_Stop {
+			return duration
+		}
+		break
+	case MOVING:
+		duration += TRAVELTIME / 2 //Define travel time later
+		elev.Floor += int(elev.Dir)
+		break
+	case DOOROPEN:
+		duration -= 3 / 2
+	}
+	for {
+		if exe.ShouldStop(elev) {
+			elev = exe.ClearOrdersAtCurrentFloor(elev)
+			duration += 3
+			elev.Dir = exe.ChooseDirection(elev, elev.Dir)
+			if elev.Dir == hw.MD_Stop {
+				return duration
+			}
+		}
+		elev.Floor += int(elev.Dir)
+		duration += TRAVELTIME
+	}
 }
 
 func setAllLights(elev Elevator) {

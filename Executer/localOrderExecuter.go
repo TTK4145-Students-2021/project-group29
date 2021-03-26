@@ -10,6 +10,8 @@ import (
 	"fmt"
 )
 
+
+
 func InitElev() {
 	hw.Init("localhost:15653", NumFloors)
 
