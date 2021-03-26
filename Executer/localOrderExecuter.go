@@ -156,7 +156,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				break
 			}
 		}
-	
+
 		enrollHardware(elev)
 		//Implement again when more than one elevator
 		orderChan.LocalElevUpdate <- elev // Have to implement these more places?

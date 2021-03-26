@@ -79,11 +79,10 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 func TxMessage(netChan NetworkChannels) {
 	for {
 		if len(MessageQueue) != 0 {
-			fmt.Println(MessageQueue)
 
 			msg := MessageQueue[0] // First element in queue
 
-			if len(CurrentConfirmations) == NumElevators-1 { // Check which elevators that are offline
+			if len(CurrentConfirmations) == NumElevators { // Check which elevators that are offline
 				MessageQueue = MessageQueue[1:] //Pop message from queue
 				CurrentConfirmations = make([]string, 0)
 		

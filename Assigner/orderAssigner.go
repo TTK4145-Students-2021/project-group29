@@ -27,7 +27,6 @@ func GetElevIP() string {
 }
 
 func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
-	// CONSIDER CHANGING TO SWITCH CASE TO AVOID SHARED VARIABLES
 	for {
 		select {
 		case buttonPress := <-hwChan.HwButtons:
@@ -37,11 +36,7 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			fmt.Println("Sending new order to distributer, via SendOrder")
 			fmt.Printf("%+v\n", newOrder)
 			orderChan.SendOrder <- newOrder
-			/* Implement again when more elevators
-			case peerUpdate := PeerHandler:
-				// Reassign all orders here
-				AssignerChannels.SendOrder <- newOrder
-			*/
+		
 		}
 	}
 }
@@ -99,7 +94,7 @@ func PeerUpdate(netChan NetworkChannels) {
 
 func costFunction(allElev map[string]Elevator) string {
 	for id, _ := range allElev {
-		if id == GetElevIP() {
+		if id != GetElevIP() {
 			return id
 		}
 	}
