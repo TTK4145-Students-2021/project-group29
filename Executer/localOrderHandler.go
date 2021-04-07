@@ -27,6 +27,8 @@ func ordersBelow(elev Elevator) bool {
 	return false
 }
 
+
+
 func ChooseDirection(elev Elevator, rememberDir hw.MotorDirection) hw.MotorDirection {
 	switch rememberDir {
 	case hw.MD_Up:
@@ -72,7 +74,7 @@ func ShouldStop(elev Elevator) bool {
 	return true
 }
 
-func ClearOrdersAtCurrentFloor(elev Elevator) Elevator {
+func ClearOrdersAtCurrentFloor(elev Elevator) Elevator { //, onClearedRequest func(hw.ButtonType,int)
 
 	elev.OrderQueue[elev.Floor][hw.BT_Cab] = false
 	switch elev.Dir {
@@ -97,5 +99,15 @@ func ClearOrdersAtCurrentFloor(elev Elevator) Elevator {
 		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
 		break
 	}
+
+	/*if onClearedRequest != nil {
+		for btn := 0 ; btn < NumButtons-1 ; btn ++ {
+			if elev.OrderQueue[elev.Floor][btn] == false {
+				onClearedRequest(btn, elev.Floor)
+			}
+		}
+	}
+	*/
+	
 	return elev
 }

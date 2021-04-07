@@ -6,11 +6,7 @@ import (
 	hw "../Driver/elevio"
 
 	. "../Common"
-
-	"fmt"
 )
-
-
 
 func InitElev() {
 	hw.Init("localhost:15653", NumFloors)
@@ -87,7 +83,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			rememberDir = elev.Dir
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				fmt.Println("Order recieved of executer")
+				//fmt.Println("Order recieved of executer")
 				elev.Id = newOrder.Id // Gets local ID from Peers
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
@@ -95,7 +91,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				} else {
 					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 					elev.State = MOVING
-					elev.Dir = chooseDirection(elev, rememberDir)
+					elev.Dir = ChooseDirection(elev, rememberDir)
 					engineFailure.Reset(3 * time.Second)
 				}
 				break
@@ -103,15 +99,15 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		case MOVING:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				fmt.Println("Order recieved of executer")
+				//fmt.Println("Order recieved of executer")
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
 				elev.Online = true
 				elev.Floor = newFloor //remove this?? So that the code is alike
 
-				if shouldStop(elev) {
-					elev = clearOrdersAtCurrentFloor(elev)
+				if ShouldStop(elev) {
+					elev = ClearOrdersAtCurrentFloor(elev)
 					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN
@@ -132,7 +128,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		case DOOROPEN:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				fmt.Println("Order recieved of executer")
+				//fmt.Println("Order recieved of executer")
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
@@ -142,7 +138,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				break
 			case <-doorTimeout.C:
 				elev.Obstructed = hw.GetObstruction()
-				elev.Dir = chooseDirection(elev, rememberDir)
+				elev.Dir = ChooseDirection(elev, rememberDir)
 				//fmt.Printf("%+v\n", elev)
 				if elev.Obstructed {
 					doorTimeout.Reset(3 * time.Second) // Does the door have to be open 3 seconds after not obstructed????

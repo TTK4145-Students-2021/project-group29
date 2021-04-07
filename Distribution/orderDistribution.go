@@ -39,7 +39,7 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
-			fmt.Println("Order recieved from SendOrder, assigner")
+			//fmt.Println("Order recieved from SendOrder, assigner")
 			elevMsg := new(Elevator)
 
 			msg := Message{
@@ -50,8 +50,8 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 				ElevatorId:  id,
 			}
 			MessageQueue = append(MessageQueue, msg)
-			fmt.Println("Map:", MessageQueue)
-			fmt.Println("Adding order to messagequeue")
+			//fmt.Println("Map:", MessageQueue)
+			//fmt.Println("Adding order to messagequeue")
 
 			//MessageQueue[msg.MessageId] = msg
 
@@ -67,7 +67,7 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 			}
 
 			MessageQueue = append(MessageQueue, msg)
-			fmt.Println("Adding elevstate to messagequeue")
+			//fmt.Println("Adding elevstate to messagequeue")
 			//MessageQueue[msg.MessageId] = msg // denne refererer som at det skulle vært en map!
 
 		}
@@ -82,12 +82,12 @@ func TxMessage(netChan NetworkChannels) {
 
 			msg := MessageQueue[0] // First element in queue
 
-			if len(CurrentConfirmations) == NumElevators { // Check which elevators that are offline
+			if len(CurrentConfirmations) == NumElevators { // Check which elevators that are offline - length of allElevators
 				MessageQueue = MessageQueue[1:] //Pop message from queue
 				CurrentConfirmations = make([]string, 0)
-		
+
 			} else {
-				fmt.Println("Message transmitted to network")
+				//fmt.Println("Message transmitted to network")
 				netChan.BcastMessage <- msg
 			}
 
@@ -105,7 +105,7 @@ func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
 		case rxMessage := <-netChan.RecieveMessage:
 			switch rxMessage.MsgType {
 			case ORDER:
-				fmt.Println("Order recieved from network")
+				//fmt.Println("Order recieved from network")
 				isDuplicate := checkForDuplicate(rxMessage)
 				if !isDuplicate {
 					orderChan.OrderBackupUpdate <- rxMessage.OrderMsg
@@ -125,7 +125,6 @@ func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
 				ArrayId := strings.Split(rxMessage.ElevatorId, "FROM")
 				toId := ArrayId[0]
 				fromId := ArrayId[1]
-
 
 				duplicateConfirm := false // make into a function?
 				if toId == id {

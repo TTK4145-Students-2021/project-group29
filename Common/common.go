@@ -10,8 +10,11 @@ import (
 const (
 	NumFloors    = 4
 	NumButtons   = 3
-	NumElevators = 2
+	TravelTime   = 2500
+	DoorOpenTime = 3000
 )
+
+var NumElevators = 0
 
 type Order struct {
 	Floor  int

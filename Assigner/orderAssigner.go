@@ -32,11 +32,16 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 	for {
 		select {
 		case buttonPress := <-hwChan.HwButtons:
+			id := "No ID"
 			// Cost function returning ID of elevator taking the order
-			id := costFunction(AllElevators)
+			if buttonPress.Button == hw.BT_Cab {
+				id = GetElevIP()
+			} else {
+				id = costFunction(AllElevators)
+			}
 			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
-			fmt.Println("Sending new order to distributer, via SendOrder")
-			fmt.Printf("%+v\n", newOrder)
+			//fmt.Println("Sending new order to distributer, via SendOrder")
+			//fmt.Printf("%+v\n", newOrder)
 			orderChan.SendOrder <- newOrder
 
 		}
@@ -69,6 +74,7 @@ func PeerUpdate(netChan NetworkChannels) {
 				if elev, found := AllElevators[p.New]; found { // If elevator is found again, going online
 					elev.Online = true
 					AllElevators[p.New] = elev
+
 				} else { // If elevator is new, needs to be created
 					elev := Elevator{
 						Id:         p.New,
@@ -81,12 +87,14 @@ func PeerUpdate(netChan NetworkChannels) {
 					}
 					AllElevators[p.New] = elev
 				}
+				NumElevators++
 			}
 			if len(p.Lost) > 0 {
 				for _, lostPeer := range p.Lost { // If elevator is lost, going offline
 					elev := AllElevators[lostPeer]
 					elev.Online = false
 					AllElevators[lostPeer] = elev
+					NumElevators--
 				}
 			}
 		}
@@ -94,16 +102,37 @@ func PeerUpdate(netChan NetworkChannels) {
 }
 
 func costFunction(allElev map[string]Elevator) string {
-	for id, _ := range allElev {
-		if id != GetElevIP() {
-			return id
+	minTime := -1
+	minId := ""
+	for id, elev := range allElev {
+		if elev.Online {
+			time := timeToIdle(elev)
+			if time < minTime || minTime == -1 {
+				minTime = time
+				minId = id
+			}
 		}
 	}
-	return "error"
+	fmt.Println("Cost function calculated id: ", minId)
+	fmt.Println("With minimum time: ", minTime)
+	return minId
+
 }
 
 func timeToIdle(elev Elevator) int {
+	/*e := elev
+	e.OrderQueue[floor][btn] = true
+
+	arrivedAtRequest := false
+
+	ifEqual := func(inner_b hw.ButtonType, inner_f int) {
+		if inner_b == btn && inner_f == floor {
+			arrivedAtRequest = true
+		}
+	}*/
+
 	duration := 0
+
 	switch elev.State {
 	case IDLE:
 		elev.Dir = exe.ChooseDirection(elev, elev.Dir)
@@ -112,23 +141,24 @@ func timeToIdle(elev Elevator) int {
 		}
 		break
 	case MOVING:
-		duration += TRAVELTIME / 2 //Define travel time later
+		duration += TravelTime / 2 //Define travel time later
 		elev.Floor += int(elev.Dir)
 		break
 	case DOOROPEN:
-		duration -= 3 / 2
+		duration -= DoorOpenTime / 2
 	}
 	for {
 		if exe.ShouldStop(elev) {
 			elev = exe.ClearOrdersAtCurrentFloor(elev)
-			duration += 3
-			elev.Dir = exe.ChooseDirection(elev, elev.Dir)
 			if elev.Dir == hw.MD_Stop {
 				return duration
 			}
+			duration += DoorOpenTime
+			elev.Dir = exe.ChooseDirection(elev, elev.Dir)
+
 		}
 		elev.Floor += int(elev.Dir)
-		duration += TRAVELTIME
+		duration += TravelTime
 	}
 }
 
