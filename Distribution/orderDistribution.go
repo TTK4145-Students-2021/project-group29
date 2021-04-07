@@ -4,131 +4,165 @@ package Distribution
 // Functions from Network
 // messagetype, messageid, elevator, order
 import (
+	"os"
+	"time"
+
+	"fmt"
+
+	"strings"
+
 	. "../Common"
+
+	localip "../Network/network/localip"
 )
 
-func SendToExe(orderChan OrderChannels) {
+var MessageQueue []Message
+var CurrentConfirmations []string
+
+var PrevRxMsgIDs map[string]int
+
+func getElevIP() string {
+	// Adds elevator-ID (localIP + process ID)
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		fmt.Println(err)
+		localIP = "DISCONNECTED"
+	}
+	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
+	return id
+}
+
+func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
+	TxMsgID := 0 // id iterator
+	id := getElevIP()
+
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
+			//fmt.Println("Order recieved from SendOrder, assigner")
+			elevMsg := new(Elevator)
 
-			orderChan.LocalOrder <- newOrder
+			msg := Message{
+				OrderMsg:    newOrder,
+				ElevatorMsg: *elevMsg,
+				MsgType:     ORDER,
+				MessageId:   TxMsgID,
+				ElevatorId:  id,
+			}
+			MessageQueue = append(MessageQueue, msg)
+			//fmt.Println("Map:", MessageQueue)
+			//fmt.Println("Adding order to messagequeue")
+
+			//MessageQueue[msg.MessageId] = msg
+
 		case localElevUpdate := <-orderChan.LocalElevUpdate:
-			orderChan.RecieveElevUpdate <- localElevUpdate
+			orderMsg := new(Order)
+
+			msg := Message{
+				OrderMsg:    *orderMsg,
+				ElevatorMsg: localElevUpdate,
+				MsgType:     ELEVSTATUS,
+				MessageId:   TxMsgID,
+				ElevatorId:  id,
+			}
+
+			MessageQueue = append(MessageQueue, msg)
+			//fmt.Println("Adding elevstate to messagequeue")
+			//MessageQueue[msg.MessageId] = msg // denne refererer som at det skulle vært en map!
+
 		}
+		TxMsgID++
 	}
+
 }
 
-/*
-MessagesSentQueue [ID] msg
-MessagesRecieved [ID] msg
-// Find way to up ID number
-
-
-
-func Distribute(channels) {
+func TxMessage(netChan NetworkChannels) {
 	for {
-		select{
-		case sendElevUpdate := <- AssignerChannels.SendElevUpdate:
-			sendElevInfo()
-			// Add this to the MessageQueue
+		if len(MessageQueue) != 0 {
 
-		case sendOrder := <-AssignerChannels.SendOrder:
-			sendOrder()
+			msg := MessageQueue[0] // First element in queue
 
-		case recieveMessage := <-NetworkChannels.RecieveMessage:
-			if recieveMessage.Msg == confirmMsg {
-				// Mark message as confirmed by message ID (++?)
+			if len(CurrentConfirmations) == NumElevators { // Check which elevators that are offline - length of allElevators
+				MessageQueue = MessageQueue[1:] //Pop message from queue
+				CurrentConfirmations = make([]string, 0)
+
 			} else {
-				handleDuplicates()
+				//fmt.Println("Message transmitted to network")
+				netChan.BcastMessage <- msg
+			}
 
-				if recieveMessage.Msg == stateMsg {
-					AssignerChannels.RecieveElevUpdate <- recieveMessage.Msg
-				} else { // If it is an order
-					handleIncomingOrders(recieveMessage.Msg)
+		}
+		time.Sleep(15 * time.Millisecond)
+
+	}
+
+}
+
+func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
+	id := getElevIP()
+	for {
+		select {
+		case rxMessage := <-netChan.RecieveMessage:
+			switch rxMessage.MsgType {
+			case ORDER:
+				//fmt.Println("Order recieved from network")
+				isDuplicate := checkForDuplicate(rxMessage)
+				if !isDuplicate {
+					orderChan.OrderBackupUpdate <- rxMessage.OrderMsg
+					if rxMessage.OrderMsg.Id == id {
+						orderChan.LocalOrder <- rxMessage.OrderMsg
+					}
 				}
-				sendConfirmation()
+				sendConfirmation(rxMessage, netChan)
+			case ELEVSTATUS:
+				isDuplicate := checkForDuplicate(rxMessage)
+				if !isDuplicate {
+					orderChan.RecieveElevUpdate <- rxMessage.ElevatorMsg
+				}
+				sendConfirmation(rxMessage, netChan)
+
+			case CONFIRMATION:
+				ArrayId := strings.Split(rxMessage.ElevatorId, "FROM")
+				toId := ArrayId[0]
+				fromId := ArrayId[1]
+
+				duplicateConfirm := false // make into a function?
+				if toId == id {
+					for _, ConfirmedId := range CurrentConfirmations {
+						if ConfirmedId == fromId {
+							duplicateConfirm = true
+						}
+					}
+					if !duplicateConfirm {
+						CurrentConfirmations = append(CurrentConfirmations, fromId)
+
+					}
+				}
+
 			}
 		}
 	}
 }
 
-func handleDuplicates()  {
+func sendConfirmation(rxMessage Message, netChan NetworkChannels) {
+	id := getElevIP()
+	msg := rxMessage
+	msg.MsgType = CONFIRMATION
+	msg.ElevatorId += "FROM" + id
 
+	netChan.BcastMessage <- msg
 }
 
-func handleMessageQueue() {
-	for {
-		// Iterate through the map
-		// If all peers have confirmed -> Pop from queue
-		// Send messages again
-		// Time sleep.
-}
-
-
-
-
-func sendConfirmation() {
-	msg = Message{
-		Msg = confirmMsg,
-		MessageId =, // What to add here
-		ElevatorID = ,
-		Confirmed = 2 // Have to do something else here
+func checkForDuplicate(rxMessage Message) bool {
+	if prevMsgId, found := PrevRxMsgIDs[rxMessage.ElevatorId]; found {
+		if rxMessage.MessageId > prevMsgId {
+			PrevRxMsgIDs[rxMessage.ElevatorId] = rxMessage.MessageId
+			return false
+		}
+	} else {
+		PrevRxMsgIDs[rxMessage.ElevatorId] = rxMessage.MessageId
+		return false
 	}
-	BcastMessage <- msg
+	return true
+
 }
-
-func handleIncomingOrders(newOrder Order) {
-	if newOrder.Id == Elev.Id {
-		LocalElevChannels.LocalOrder <- newOrder
-	}
-	AssignerChannels.OrderBackupUpdate <- newOrder
-}
-
-func sendElevInfo(BcastMessage chan Message) {
-	// Sends elevator info to all the other elevators.
-	msg = Message{
-		Msg = stateMsg,
-		MessageId =, // What to add here
-		ElevatorID = ,
-		Confirmed = 0
-	}
-	BcastMessage <- msg
-}
-
-func sendOrder(BcastMessage chan Message) {
-	msg = Message {
-		Msg = stateMsg,
-		MessageID = ,
-		ElevatorID = ,
-		Confirmed = 0,
-	}
-	BcastMessage <- msg
-}
-
-
-
-
-type MessageType struct { //This should be an enum
-	orderMsg Order
-	stateMsg Elevator
-	confirmMsg Acknowledge
-}
-
-type Message struct {
-	Msg        MessageType
-	MessageId  int
-	ElevatorId int
-	Confirmed int
-}
-
-type NetworkChannels struct {
-	PeerUpdateCh chan peers.PeerUpdate
-	PeerTxEnable chan bool
-	BcastMessage chan Message
-	RecieveMessage chan Message
-}
-
-
-
-*/

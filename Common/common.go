@@ -1,19 +1,25 @@
 package Common
 
-import hw "../Driver/elevio"
+import (
+	hw "../Driver/elevio"
+	p "../Network/network/peers"
+)
 
 // import "fmt"
 
 const (
 	NumFloors    = 4
 	NumButtons   = 3
-	NumElevators = 1
+	TravelTime   = 2500
+	DoorOpenTime = 3000
 )
+
+var NumElevators = 0
 
 type Order struct {
 	Floor  int
 	Button hw.ButtonType
-	Id     int
+	Id     string
 }
 
 type ElevState int
@@ -25,7 +31,7 @@ const (
 )
 
 type Elevator struct {
-	Id         int
+	Id         string
 	Floor      int
 	Dir        hw.MotorDirection //Both direction and elevator behaviour in this variable?
 	State      ElevState
@@ -34,40 +40,34 @@ type Elevator struct {
 	Obstructed bool
 }
 
-
-
 type HardwareChannels struct {
 	HwButtons     chan hw.ButtonEvent
 	HwFloor       chan int
 	HwObstruction chan bool
 }
 
-type Acknowledge int
+type MessageType int
 
 const (
-	NotAck = iota - 1
-	Ack
+	ORDER MessageType = iota
+	ELEVSTATUS
+	CONFIRMATION
 )
 
-type MessageType struct {
-	Order
-	Elevator
-	Acknowledge
-}
-
 type Message struct {
-	Msg        MessageType
-	MessageId  int
-	ElevatorId int
+	OrderMsg    Order
+	ElevatorMsg Elevator
+	MsgType     MessageType
+	MessageId   int
+	ElevatorId  string
 }
 
 type NetworkChannels struct {
-	//PeerUpdateCh chan peers.PeerUpdate
+	PeerUpdateCh   chan p.PeerUpdate
 	PeerTxEnable   chan bool
 	BcastMessage   chan Message
 	RecieveMessage chan Message
 }
-
 
 type OrderChannels struct {
 	//From assigner to distributer
