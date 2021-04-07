@@ -54,9 +54,9 @@ func UpdateAssigner(orderChan OrderChannels) {
 		case newOrder := <-orderChan.OrderBackupUpdate:
 			OrderBackup[newOrder.Id] = append(OrderBackup[newOrder.Id], newOrder)
 			// Make function that deletes orders from backup when finished
-
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
+			setAllLights()
 
 		}
 	}
@@ -162,69 +162,19 @@ func timeToIdle(elev Elevator) int {
 	}
 }
 
-func setAllLights(elev Elevator) {
-	for floor := 0; floor < NumFloors; floor++ {
-		for btn := 0; btn < NumButtons; btn++ {
-			if elev.OrderQueue[floor][btn] == true {
-				hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
-			} else {
-				hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
+func setAllLights() {
+	for id, elev := range AllElevators {
+		for floor := 0; floor < NumFloors; floor++ {
+			for btn := 0; btn < NumButtons; btn++ {
+				if id != GetElevIP() && btn == hw.BT_Cab {
+					// do nothing if cab order and not your elevator
+				} else if elev.OrderQueue[floor][btn] == true {
+
+					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
+				} else {
+					hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
+				}
 			}
 		}
 	}
 }
-
-/*
-func UpdateAssigner() {
-	for {
-		select {
-		case updateLocalElev := <-LocalElevChannels.LocalElevUpdate:
-			updateLocalElevator(updateLocalElev)
-			AssignerChannels.SendElevUpdate <- updateLocalElev
-
-		case updateExternalElev := <-AssignerChannels.RecieveElevUpdate:
-			updateElevators(updateExternalElev)
-
-		case updateOrderList := <-AssignerChannels.OrderBackupUpdate:
-			updateOrderBackup(updateOrderList)
-
-		}
-	}
-}
-*/
-/*
-func costFunc(order Order, elevatorInfo []Elevator) {
-	//...
-}
-
-*/
-
-/*
-func getRecommendedExecuter() {
-
-}
-
-
-
-func updateAllElevatorInfo(msg net.Message) {
-
-}
-
-func updateOrderBackup() {
-	// Make a map with id and order
-}
-
-
-func RemoveElevFromNetwork() {
-	// If PeersUpdate (p.Lost)
-	// Remove that elevator from network
-	// Only needs ID to the elevator that is lost
-	elev = ElevList[ID]
-	PeerHandler <- elev
-	// Sends all orders to AssignCer through a channel
-}
-func AddElevToNetwork() {
-	// If PeersUpdate (p.New)
-	// Add Elevator to network
-}
-*/
