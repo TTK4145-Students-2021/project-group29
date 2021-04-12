@@ -7,7 +7,6 @@ import (
 
 	. "../Common"
 
-	"fmt"
 )
 
 func InitElev() {
@@ -109,7 +108,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				elev.Floor = newFloor //remove this?? So that the code is alike
 
 				if ShouldStop(elev) {
-					fmt.Println("Going into ShouldStop")
 					elev = ClearOrdersAtCurrentFloor(elev)
 					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop
@@ -161,6 +159,5 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		enrollHardware(elev)
 		//Implement again when more than one elevator
 		orderChan.LocalElevUpdate <- elev // Have to implement these more places?
-		fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
 	}
 }
