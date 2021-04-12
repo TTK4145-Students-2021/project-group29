@@ -1,17 +1,16 @@
 package Executer
 
 import (
+	"fmt"
 	"time"
 
 	hw "../Driver/elevio"
 
 	. "../Common"
-
-	"fmt"
 )
 
 func InitElev() {
-	hw.Init("localhost:15652", NumFloors)
+	hw.Init("localhost:15654", NumFloors)
 
 	clearAllLights()
 
@@ -80,8 +79,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	var rememberDir hw.MotorDirection
 
 	ifEqualEmpty := func(a hw.ButtonType, b int) {
-		return
-	}
+		fmt.Println(b)
+	} // can this be an empty function of some type?
 
 	for {
 		switch elev.State {
@@ -164,6 +163,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		enrollHardware(elev)
 		//Implement again when more than one elevator
 		orderChan.LocalElevUpdate <- elev // Have to implement these more places?
-		fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
+		// fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
 	}
 }

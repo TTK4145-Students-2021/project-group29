@@ -57,8 +57,6 @@ func UpdateAssigner(orderChan OrderChannels) {
 			// Make function that deletes orders from backup when finished
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
-		
-			
 
 			setAllLights()
 
@@ -110,7 +108,7 @@ func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) str
 	minId := ""
 	for id, elev := range allElev {
 		if elev.Online {
-			time := timeToIdle(elev, btn, floor)
+			time := timeToServeRequest(elev, btn, floor)
 			if time < minTime || minTime == -1 {
 				minTime = time
 				minId = id
@@ -123,12 +121,11 @@ func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) str
 
 }
 
-func timeToIdle(elev Elevator, btn hw.ButtonType, floor int) int {
+func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
 	e := elev
 	e.OrderQueue[floor][btn] = true
 
 	arrivedAtRequest := false
-
 	ifEqual := func(inner_b hw.ButtonType, inner_f int) {
 		if inner_b == btn && inner_f == floor {
 			arrivedAtRequest = true
@@ -137,24 +134,24 @@ func timeToIdle(elev Elevator, btn hw.ButtonType, floor int) int {
 
 	duration := 0
 
-	switch elev.State {
+	switch e.State {
 	case IDLE:
-		elev.Dir = exe.ChooseDirection(elev, elev.Dir)
-		if elev.Dir == hw.MD_Stop {
+		e.Dir = exe.ChooseDirection(e, e.Dir)
+		if e.Dir == hw.MD_Stop {
 			return duration
 		}
 		break
 	case MOVING:
 		duration += TravelTime / 2 //Define travel time later
-		elev.Floor += int(elev.Dir)
+		e.Floor += int(e.Dir)
 		break
 	case DOOROPEN:
 		duration -= DoorOpenTime / 2
 	}
 
 	for {
-		if exe.ShouldStop(elev) {
-			elev = exe.ClearOrdersAtCurrentFloor(elev, ifEqual)
+		if exe.ShouldStop(e) {
+			e = exe.ClearOrdersAtCurrentFloor(e, ifEqual)
 			/* if elev.Dir == hw.MD_Stop {
 				return duration
 			} */
@@ -162,16 +159,16 @@ func timeToIdle(elev Elevator, btn hw.ButtonType, floor int) int {
 				return duration
 			}
 			duration += DoorOpenTime
-			elev.Dir = exe.ChooseDirection(elev, elev.Dir)
+			e.Dir = exe.ChooseDirection(e, e.Dir)
 
 		}
-		elev.Floor += int(elev.Dir)
+		e.Floor += int(e.Dir)
 		duration += TravelTime
 	}
 }
 
 func setAllLights() {
-	ID := GetElevIP();
+	ID := GetElevIP()
 	var lightsOff bool
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
@@ -180,19 +177,19 @@ func setAllLights() {
 				if btn == hw.BT_Cab && id != ID {
 					continue
 				}
-				if elev.OrderQueue[floor][btn]   { 
+				if elev.OrderQueue[floor][btn] {
 					SetLights[id] = true
-					hw.SetButtonLamp(hw.ButtonType(btn),floor,true)
+					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
 				}
 			}
 			lightsOff = true
-			for _, val := range SetLights {		
+			for _, val := range SetLights {
 				if val == true {
 					lightsOff = false
 				}
 			}
 			if lightsOff {
-				hw.SetButtonLamp(hw.ButtonType(btn),floor,false)
+				hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
 			}
 		}
 	}

@@ -76,10 +76,12 @@ func ClearOrdersAtCurrentFloor(elev Elevator, f func(hw.ButtonType, int)) Elevat
 	elev.OrderQueue[elev.Floor][hw.BT_Cab] = false
 	switch elev.Dir {
 	case hw.MD_Up:
-		// check ifrequest
+		// check ifRequest
 		f(hw.BT_HallUp, elev.Floor)
 		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
 		if !ordersAbove(elev) {
+			// check ifRequest
+			f(hw.BT_HallDown, elev.Floor)
 			elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
 		}
 		break
@@ -89,6 +91,8 @@ func ClearOrdersAtCurrentFloor(elev Elevator, f func(hw.ButtonType, int)) Elevat
 		f(hw.BT_HallDown, elev.Floor)
 		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
 		if !ordersBelow(elev) {
+			// check ifRequest
+			f(hw.BT_HallUp, elev.Floor)
 			elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
 		}
 		break
@@ -100,15 +104,6 @@ func ClearOrdersAtCurrentFloor(elev Elevator, f func(hw.ButtonType, int)) Elevat
 		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
 		break
 	}
-
-	/*if onClearedRequest != nil {
-		for btn := 0 ; btn < NumButtons-1 ; btn ++ {
-			if elev.OrderQueue[elev.Floor][btn] == false {
-				onClearedRequest(btn, elev.Floor)
-			}
-		}
-	}
-	*/
 
 	return elev
 }
