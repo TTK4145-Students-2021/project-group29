@@ -74,18 +74,17 @@ func ShouldStop(elev Elevator) bool {
 	return true
 }
 
-func ClearOrdersAtCurrentFloor(p Params) Elevator { //, onClearedRequest func(hw.ButtonType,int)
+func ClearOrdersAtCurrentFloor(p Params) Elevator {
 	p.Elev.OrderQueue[p.Elev.Floor][hw.BT_Cab] = false
+	haveFunction := !reflect.ValueOf(p.Func).IsZero()
 	switch p.Elev.Dir {
 	case hw.MD_Up:
-		// check ifRequest
-		if !reflect.ValueOf(p.Func).IsZero() {
+		if haveFunction { // check ifRequest
 			p.Func(hw.BT_HallUp, p.Elev.Floor)
 		}
 		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallUp] = false
 		if !ordersAbove(p.Elev) {
-			// check ifRequest
-			if !reflect.ValueOf(p.Func).IsZero() {
+			if haveFunction { // check ifRequest
 				p.Func(hw.BT_HallDown, p.Elev.Floor)
 			}
 			p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallDown] = false
@@ -93,14 +92,12 @@ func ClearOrdersAtCurrentFloor(p Params) Elevator { //, onClearedRequest func(hw
 		break
 
 	case hw.MD_Down:
-		// check if request
-		if !reflect.ValueOf(p.Func).IsZero() {
+		if haveFunction { // check ifRequest
 			p.Func(hw.BT_HallDown, p.Elev.Floor)
 		}
 		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallDown] = false
 		if !ordersBelow(p.Elev) {
-			// check ifRequest
-			if !reflect.ValueOf(p.Func).IsZero() {
+			if haveFunction { // check ifRequest
 				p.Func(hw.BT_HallUp, p.Elev.Floor)
 			}
 			p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallUp] = false

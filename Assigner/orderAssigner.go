@@ -153,9 +153,6 @@ func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
 		if exe.ShouldStop(e) {
 			parameters := Params{Elev: e, Func: ifEqual}
 			e = exe.ClearOrdersAtCurrentFloor(parameters)
-			/* if elev.Dir == hw.MD_Stop {
-				return duration
-			} */
 			if arrivedAtRequest {
 				return duration
 			}
