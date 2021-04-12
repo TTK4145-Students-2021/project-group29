@@ -9,7 +9,7 @@ import (
 )
 
 func InitElev() {
-	hw.Init("localhost:15653", NumFloors)
+	hw.Init("localhost:15654", NumFloors)
 
 	clearAllLights()
 

@@ -32,6 +32,7 @@ func main() {
 		LocalOrder: make(chan Order),
 		//From executer to distributor
 		LocalElevUpdate: make(chan Elevator),
+		LostPeerOrders: make(chan string),
 	}
 
 	hwChan := HardwareChannels{
@@ -65,7 +66,7 @@ func main() {
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)
 	go assigner.UpdateAssigner(orderChan)
-	go assigner.PeerUpdate(netChan)
+	go assigner.PeerUpdate(netChan, orderChan)
 
 	// Goroutine of Distributer
 	go distributer.AddToMessageQueue(netChan, orderChan)
