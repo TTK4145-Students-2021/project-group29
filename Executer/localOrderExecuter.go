@@ -1,7 +1,6 @@
 package Executer
 
 import (
-	"fmt"
 	"time"
 
 	hw "../Driver/elevio"
@@ -10,7 +9,7 @@ import (
 )
 
 func InitElev() {
-	hw.Init("localhost:15654", NumFloors)
+	hw.Init("localhost:15653", NumFloors)
 
 	clearAllLights()
 
@@ -78,10 +77,10 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 	var rememberDir hw.MotorDirection
 
-	ifEqualEmpty := func(a hw.ButtonType, b int) {
+	/*ifEqualEmpty := func(a hw.ButtonType, b int) {
 		fmt.Println(b)
 	} // can this be an empty function of some type?
-
+	*/
 	for {
 		switch elev.State {
 		case IDLE:
@@ -112,7 +111,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				elev.Floor = newFloor //remove this?? So that the code is alike
 
 				if ShouldStop(elev) {
-					elev = ClearOrdersAtCurrentFloor(elev, ifEqualEmpty)
+					parameters := Params{Elev: elev}
+					elev = ClearOrdersAtCurrentFloor(parameters)
 					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN

@@ -1,6 +1,8 @@
 package Executer
 
 import (
+	"reflect"
+
 	. "../Common"
 	hw "../Driver/elevio"
 )
@@ -72,38 +74,46 @@ func ShouldStop(elev Elevator) bool {
 	return true
 }
 
-func ClearOrdersAtCurrentFloor(elev Elevator, f func(hw.ButtonType, int)) Elevator { //, onClearedRequest func(hw.ButtonType,int)
-	elev.OrderQueue[elev.Floor][hw.BT_Cab] = false
-	switch elev.Dir {
+func ClearOrdersAtCurrentFloor(p Params) Elevator { //, onClearedRequest func(hw.ButtonType,int)
+	p.Elev.OrderQueue[p.Elev.Floor][hw.BT_Cab] = false
+	switch p.Elev.Dir {
 	case hw.MD_Up:
 		// check ifRequest
-		f(hw.BT_HallUp, elev.Floor)
-		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
-		if !ordersAbove(elev) {
+		if !reflect.ValueOf(p.Func).IsZero() {
+			p.Func(hw.BT_HallUp, p.Elev.Floor)
+		}
+		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallUp] = false
+		if !ordersAbove(p.Elev) {
 			// check ifRequest
-			f(hw.BT_HallDown, elev.Floor)
-			elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
+			if !reflect.ValueOf(p.Func).IsZero() {
+				p.Func(hw.BT_HallDown, p.Elev.Floor)
+			}
+			p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallDown] = false
 		}
 		break
 
 	case hw.MD_Down:
 		// check if request
-		f(hw.BT_HallDown, elev.Floor)
-		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
-		if !ordersBelow(elev) {
+		if !reflect.ValueOf(p.Func).IsZero() {
+			p.Func(hw.BT_HallDown, p.Elev.Floor)
+		}
+		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallDown] = false
+		if !ordersBelow(p.Elev) {
 			// check ifRequest
-			f(hw.BT_HallUp, elev.Floor)
-			elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
+			if !reflect.ValueOf(p.Func).IsZero() {
+				p.Func(hw.BT_HallUp, p.Elev.Floor)
+			}
+			p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallUp] = false
 		}
 		break
 
 	case hw.MD_Stop:
 
 	default:
-		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
-		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
+		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallUp] = false
+		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallDown] = false
 		break
 	}
 
-	return elev
+	return p.Elev
 }

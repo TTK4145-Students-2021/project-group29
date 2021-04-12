@@ -16,6 +16,11 @@ const (
 
 var NumElevators = 0
 
+type Params struct {
+	Elev Elevator
+	Func func(hw.ButtonType, int)
+}
+
 type Order struct {
 	Floor  int
 	Button hw.ButtonType
