@@ -16,6 +16,7 @@ import (
 
 var AllElevators map[string]Elevator
 var OrderBackup map[string][]Order
+var SetLights map[string]bool
 
 func GetElevIP() string {
 	// Adds elevator-ID (localIP + process ID)
@@ -56,6 +57,9 @@ func UpdateAssigner(orderChan OrderChannels) {
 			// Make function that deletes orders from backup when finished
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
+		
+			
+
 			setAllLights()
 
 		}
@@ -163,17 +167,28 @@ func timeToIdle(elev Elevator) int {
 }
 
 func setAllLights() {
-	for id, elev := range AllElevators {
-		for floor := 0; floor < NumFloors; floor++ {
-			for btn := 0; btn < NumButtons; btn++ {
-				if id != GetElevIP() && btn == hw.BT_Cab {
-					// do nothing if cab order and not your elevator
-				} else if elev.OrderQueue[floor][btn] == true {
-
-					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
-				} else {
-					hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
+	ID := GetElevIP();
+	var lightsOff bool
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons; btn++ {
+			for id, elev := range AllElevators {
+				SetLights[id] = false
+				if btn == hw.BT_Cab && id != ID {
+					continue
 				}
+				if elev.OrderQueue[floor][btn]   { 
+					SetLights[id] = true
+					hw.SetButtonLamp(hw.ButtonType(btn),floor,true)
+				}
+			}
+			lightsOff = true
+			for _, val := range SetLights {		
+				if val == true {
+					lightsOff = false
+				}
+			}
+			if lightsOff {
+				hw.SetButtonLamp(hw.ButtonType(btn),floor,false)
 			}
 		}
 	}
