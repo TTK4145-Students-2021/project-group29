@@ -40,10 +40,11 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			} else {
 				id = costFunction(AllElevators)
 			}
-			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
-			//fmt.Println("Sending new order to distributer, via SendOrder")
-			//fmt.Printf("%+v\n", newOrder)
-			orderChan.SendOrder <- newOrder
+			if !duplicateOrder(buttonPress.Button, buttonPress.Floor) {
+
+				newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
+				orderChan.SendOrder <- newOrder
+			}
 
 		}
 	}
@@ -117,8 +118,6 @@ func costFunction(allElev map[string]Elevator) string {
 			}
 		}
 	}
-	fmt.Println("Cost function calculated id: ", minId)
-	fmt.Println("With minimum time: ", minTime)
 	return minId
 
 }
@@ -167,7 +166,7 @@ func timeToIdle(elev Elevator) int {
 }
 
 func setAllLights() {
-	ID := GetElevIP();
+	ID := GetElevIP()
 	var lightsOff bool
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
@@ -192,4 +191,17 @@ func setAllLights() {
 			}
 		}
 	}
+}
+
+func duplicateOrder(btn hw.ButtonType, floor int) bool{
+	ID := GetElevIP()
+	for id, elev := range AllElevators {
+		if btn == hw.BT_Cab && id != ID {
+			continue
+		}
+		if elev.OrderQueue[floor][btn]{
+			return true
+		}
+	}
+	return false
 }
