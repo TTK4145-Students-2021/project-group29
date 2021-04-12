@@ -38,7 +38,7 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			if buttonPress.Button == hw.BT_Cab {
 				id = GetElevIP()
 			} else {
-				id = costFunction(AllElevators)
+				id = costFunction(AllElevators, buttonPress.Button, buttonPress.Floor)
 			}
 			newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
 			//fmt.Println("Sending new order to distributer, via SendOrder")
@@ -105,12 +105,12 @@ func PeerUpdate(netChan NetworkChannels) {
 	}
 }
 
-func costFunction(allElev map[string]Elevator) string {
+func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) string {
 	minTime := -1
 	minId := ""
 	for id, elev := range allElev {
 		if elev.Online {
-			time := timeToIdle(elev)
+			time := timeToIdle(elev, btn, floor)
 			if time < minTime || minTime == -1 {
 				minTime = time
 				minId = id
@@ -123,8 +123,8 @@ func costFunction(allElev map[string]Elevator) string {
 
 }
 
-func timeToIdle(elev Elevator) int {
-	/*e := elev
+func timeToIdle(elev Elevator, btn hw.ButtonType, floor int) int {
+	e := elev
 	e.OrderQueue[floor][btn] = true
 
 	arrivedAtRequest := false
@@ -133,7 +133,7 @@ func timeToIdle(elev Elevator) int {
 		if inner_b == btn && inner_f == floor {
 			arrivedAtRequest = true
 		}
-	}*/
+	}
 
 	duration := 0
 
@@ -151,10 +151,14 @@ func timeToIdle(elev Elevator) int {
 	case DOOROPEN:
 		duration -= DoorOpenTime / 2
 	}
+
 	for {
 		if exe.ShouldStop(elev) {
-			elev = exe.ClearOrdersAtCurrentFloor(elev)
-			if elev.Dir == hw.MD_Stop {
+			elev = exe.ClearOrdersAtCurrentFloor(elev, ifEqual)
+			/* if elev.Dir == hw.MD_Stop {
+				return duration
+			} */
+			if arrivedAtRequest {
 				return duration
 			}
 			duration += DoorOpenTime

@@ -79,6 +79,10 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 	var rememberDir hw.MotorDirection
 
+	ifEqualEmpty := func(a hw.ButtonType, b int) {
+		return
+	}
+
 	for {
 		switch elev.State {
 		case IDLE:
@@ -109,8 +113,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				elev.Floor = newFloor //remove this?? So that the code is alike
 
 				if ShouldStop(elev) {
-					fmt.Println("Going into ShouldStop")
-					elev = ClearOrdersAtCurrentFloor(elev)
+					elev = ClearOrdersAtCurrentFloor(elev, ifEqualEmpty)
 					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN
