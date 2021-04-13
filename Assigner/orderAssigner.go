@@ -42,26 +42,29 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			}
 			if !duplicateOrder(buttonPress.Button, buttonPress.Floor) {
 				newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
+				fmt.Println("Sending normal order")
 				orderChan.SendOrder <- newOrder
 			}
-			
-		case lostPeer := <- orderChan.LostPeerOrders:
+
+		case lostPeer := <-orderChan.LostPeerOrders:
 			id := "No ID"
 			fmt.Println("Recieved lost peer")
 			elev := AllElevators[lostPeer]
+			fmt.Println("Elevator",elev)
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons-1; btn++ { // Only checks for hall up or hall down orders
 					if elev.OrderQueue[floor][btn] {
 						id = costFunction(AllElevators)
 						if !duplicateOrder(hw.ButtonType(btn), floor) {
 							newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
+							fmt.Println("Sending reassigned order!")
 							orderChan.SendOrder <- newOrder
 						}
 						elev.OrderQueue[floor][btn] = false
 					}
 				}
 			}
-		}		
+		}
 	}
 }
 
@@ -113,7 +116,6 @@ func PeerUpdate(netChan NetworkChannels, orderChan OrderChannels) {
 					AllElevators[lostPeer] = elev
 					NumElevators--
 					orderChan.LostPeerOrders <- lostPeer
-				
 
 				}
 			}
@@ -190,31 +192,31 @@ func setAllLights() {
 				if btn == hw.BT_Cab && id != ID {
 					continue
 				}
-				if elev.OrderQueue[floor][btn]   { 
+				if elev.OrderQueue[floor][btn] && elev.Online {
 					SetLights[id] = true
-					hw.SetButtonLamp(hw.ButtonType(btn),floor,true)
+					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
 				}
 			}
 			lightsOff = true
-			for _, val := range SetLights {		
+			for _, val := range SetLights {
 				if val == true {
 					lightsOff = false
 				}
 			}
 			if lightsOff {
-				hw.SetButtonLamp(hw.ButtonType(btn),floor,false)
+				hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
 			}
 		}
 	}
 }
 
-func duplicateOrder(btn hw.ButtonType, floor int) bool{
+func duplicateOrder(btn hw.ButtonType, floor int) bool {
 	ID := GetElevIP()
 	for id, elev := range AllElevators {
 		if btn == hw.BT_Cab && id != ID {
 			continue
 		}
-		if elev.OrderQueue[floor][btn]{
+		if elev.OrderQueue[floor][btn] && elev.Online {
 			return true
 		}
 	}
