@@ -42,6 +42,7 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			}
 			if !duplicateOrder(buttonPress.Button, buttonPress.Floor) {
 				newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
+				fmt.Println("Sending normal order")
 				orderChan.SendOrder <- newOrder
 			}
 
@@ -49,12 +50,14 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			id := "No ID"
 			fmt.Println("Recieved lost peer")
 			elev := AllElevators[lostPeer]
+			fmt.Println("Elevator", elev)
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons-1; btn++ { // Only checks for hall up or hall down orders
 					if elev.OrderQueue[floor][btn] {
 						id = costFunction(AllElevators)
 						if !duplicateOrder(hw.ButtonType(btn), floor) {
 							newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
+							fmt.Println("Sending reassigned order!")
 							orderChan.SendOrder <- newOrder
 						}
 						elev.OrderQueue[floor][btn] = false
@@ -190,7 +193,7 @@ func setAllLights() {
 				if btn == hw.BT_Cab && id != ID {
 					continue
 				}
-				if elev.OrderQueue[floor][btn] {
+				if elev.OrderQueue[floor][btn] && elev.Online {
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
 				}
