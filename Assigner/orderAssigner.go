@@ -46,21 +46,28 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 				orderChan.SendOrder <- newOrder
 			}
 
-		case lostPeer := <-orderChan.LostPeerOrders:
+		case offlineElev := <-orderChan.ReassignOrders:
 			id := "No ID"
 			fmt.Println("Recieved lost peer")
 			elev := AllElevators[lostPeer]
 			fmt.Println("Elevator", elev)
+			fmt.Println("Recieved lost peer")
+			elev := AllElevators[offlineElev]
+			fmt.Println("Elevator 1", elev)
 			for floor := 0; floor < NumFloors; floor++ {
-				for btn := 0; btn < NumButtons-1; btn++ { // Only checks for hall up or hall down orders
+				for btn := 0; btn < NumButtons-1; btn++ {
 					if elev.OrderQueue[floor][btn] {
+						fmt.Println("Going into if statement")
 						id = costFunction(AllElevators)
+						elev.OrderQueue[floor][btn] = false
+						AllElevators[offlineElev] = elev
+						fmt.Println("Elevator 1", elev)
 						if !duplicateOrder(hw.ButtonType(btn), floor) {
 							newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
 							fmt.Println("Sending reassigned order!")
 							orderChan.SendOrder <- newOrder
 						}
-						elev.OrderQueue[floor][btn] = false
+
 					}
 				}
 			}
@@ -68,7 +75,7 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 	}
 }
 
-func UpdateAssigner(orderChan OrderChannels) {
+func UpdateAssigner(orderChan OrderChannels, netChan NetworkChannels) {
 	for {
 		select {
 		case newOrder := <-orderChan.OrderBackupUpdate:
@@ -77,6 +84,11 @@ func UpdateAssigner(orderChan OrderChannels) {
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
 			setAllLights()
+			if !updatedElev.Online && updatedElev.Id == GetElevIP() {
+				netChan.PeerTxEnable <- false
+			} else {
+				netChan.PeerTxEnable <- true
+			}
 		}
 	}
 }
@@ -90,9 +102,10 @@ func PeerUpdate(netChan NetworkChannels, orderChan OrderChannels) {
 			fmt.Printf("  New:      %q\n", p.New)
 			fmt.Printf("  Lost:     %q\n", p.Lost)
 			if p.New != "" {
-				if elev, found := AllElevators[p.New]; found { // If elevator is found again, going online
+				if elev, foundPeer := AllElevators[p.New]; foundPeer { // If elevator is found again, going online
 					elev.Online = true
 					AllElevators[p.New] = elev
+					//When engine p
 
 				} else { // If elevator is new, needs to be created
 					elev := Elevator{
@@ -115,7 +128,7 @@ func PeerUpdate(netChan NetworkChannels, orderChan OrderChannels) {
 					elev.Online = false
 					AllElevators[lostPeer] = elev
 					NumElevators--
-					orderChan.LostPeerOrders <- lostPeer
+					orderChan.ReassignOrders <- lostPeer
 
 				}
 			}
@@ -218,8 +231,10 @@ func duplicateOrder(btn hw.ButtonType, floor int) bool {
 			continue
 		}
 		if elev.OrderQueue[floor][btn] {
+			fmt.Println("Returning TRUE to duplicate")
 			return true
 		}
 	}
+	fmt.Println("Returning FALSE to duplicate")
 	return false
 }
