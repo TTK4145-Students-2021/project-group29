@@ -111,7 +111,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				elev.Floor = newFloor //remove this?? So that the code is alike
 
 				if ShouldStop(elev) {
-					parameters := Params{Elev: elev}
+					parameters := ClearOrdersParams{Elev: elev}
 					elev = ClearOrdersAtCurrentFloor(parameters)
 					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop

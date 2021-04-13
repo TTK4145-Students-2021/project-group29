@@ -1,8 +1,6 @@
 package Executer
 
 import (
-	"reflect"
-
 	. "../Common"
 	hw "../Driver/elevio"
 )
@@ -74,43 +72,54 @@ func ShouldStop(elev Elevator) bool {
 	return true
 }
 
-func ClearOrdersAtCurrentFloor(p Params) Elevator {
-	p.Elev.OrderQueue[p.Elev.Floor][hw.BT_Cab] = false
-	haveFunction := !reflect.ValueOf(p.Func).IsZero()
-	switch p.Elev.Dir {
+func ClearOrdersAtCurrentFloor(params ClearOrdersParams) Elevator {
+	params.Elev.OrderQueue[params.Elev.Floor][hw.BT_Cab] = false
+	haveFunction := !(params.IfEqual == nil)
+	switch params.Elev.Dir {
 	case hw.MD_Up:
 		if haveFunction { // check ifRequest
-			p.Func(hw.BT_HallUp, p.Elev.Floor)
+			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
 		}
-		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallUp] = false
-		if !ordersAbove(p.Elev) {
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
+		if !ordersAbove(params.Elev) {
 			if haveFunction { // check ifRequest
-				p.Func(hw.BT_HallDown, p.Elev.Floor)
+				params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
 			}
-			p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallDown] = false
+			params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
 		}
 		break
 
 	case hw.MD_Down:
 		if haveFunction { // check ifRequest
-			p.Func(hw.BT_HallDown, p.Elev.Floor)
+			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
 		}
-		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallDown] = false
-		if !ordersBelow(p.Elev) {
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
+		if !ordersBelow(params.Elev) {
 			if haveFunction { // check ifRequest
-				p.Func(hw.BT_HallUp, p.Elev.Floor)
+				params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
 			}
-			p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallUp] = false
+			params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
 		}
 		break
 
 	case hw.MD_Stop:
+		if haveFunction { // check ifRequest
+			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
+			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
+		}
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
+		break
 
 	default:
-		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallUp] = false
-		p.Elev.OrderQueue[p.Elev.Floor][hw.BT_HallDown] = false
+		if haveFunction { // check ifRequest
+			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
+			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
+		}
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
 		break
 	}
 
-	return p.Elev
+	return params.Elev
 }

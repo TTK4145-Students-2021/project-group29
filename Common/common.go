@@ -16,9 +16,9 @@ const (
 
 var NumElevators = 0
 
-type Params struct {
-	Elev Elevator
-	Func func(hw.ButtonType, int)
+type ClearOrdersParams struct {
+	Elev    Elevator
+	IfEqual func(hw.ButtonType, int)
 }
 
 type Order struct {
