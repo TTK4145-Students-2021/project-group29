@@ -5,9 +5,27 @@ import (
 
 	hw "../Driver/elevio"
 
+	localip "../Network/network/localip"
+
+
 	. "../Common"
 
+	"fmt"
+
+	"os"
+
 )
+
+func GetElevIP() string {
+	// Adds elevator-ID (localIP + process ID)
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		fmt.Println(err)
+		localIP = "DISCONNECTED"
+	}
+	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
+	return id
+}
 
 func InitElev() {
 	hw.Init("localhost:15653", NumFloors)
@@ -77,6 +95,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	engineFailure.Stop()
 
 	var rememberDir hw.MotorDirection
+	//var recentEngineFailure = false
 
 	for {
 		switch elev.State {
@@ -104,8 +123,19 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
-				elev.Online = true
 				elev.Floor = newFloor //remove this?? So that the code is alike
+				elev.Online = true
+				/*if recentEngineFailure {
+					elev.Online = true
+
+					fmt.Println("Recent engine failure")
+					for floor := 0; floor < NumFloors; floor++ {
+						for btn := 0; btn < NumButtons-1; btn++ { 
+							elev.OrderQueue[floor][btn] = false
+						}
+					}
+					recentEngineFailure = false
+				}*/
 
 				if ShouldStop(elev) {
 					elev = ClearOrdersAtCurrentFloor(elev)
@@ -122,9 +152,11 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 				break
 			case <-engineFailure.C:
+				fmt.Println("ENGINE FAILURE")
 				elev.Online = false
-				engineFailure.Reset(5 * time.Second)
-
+				/*recentEngineFailure = true
+				orderChan.ReassignOrders <- GetElevIP()
+				engineFailure.Reset(5 * time.Second)*/
 			}
 		case DOOROPEN:
 			select {

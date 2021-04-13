@@ -79,5 +79,5 @@ type OrderChannels struct {
 	LocalOrder chan Order
 	//From executer to distributor
 	LocalElevUpdate chan Elevator
-	LostPeerOrders chan string
+	ReassignOrders chan string
 }
