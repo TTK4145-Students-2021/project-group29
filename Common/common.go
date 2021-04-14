@@ -70,6 +70,7 @@ type Message struct {
 	ElevatorId  string
 }
 
+
 type NetworkChannels struct {
 	PeerUpdateCh   chan p.PeerUpdate
 	PeerTxEnable   chan bool

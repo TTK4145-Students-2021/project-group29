@@ -39,15 +39,10 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			id := "No ID"
 			fmt.Println("Recieved lost peer")
 			elev := AllElevators[offlineElev]
-			fmt.Println("Elevator 1", elev)
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons-1; btn++ {
 					if elev.OrderQueue[floor][btn] {
 						id = costFunction(AllElevators, hw.ButtonType(btn),floor)
-						elev.OrderQueue[floor][btn] = false
-						fmt.Println("Setting obstructed elev order to false")
-						AllElevators[offlineElev] = elev
-						
 						if !duplicateOrder(hw.ButtonType(btn), floor) {
 							newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
 							fmt.Println("Sending reassigned order!")
@@ -67,19 +62,16 @@ func UpdateAssigner(orderChan OrderChannels, netChan NetworkChannels) {
 		select {
 		case newOrder := <-orderChan.OrderBackupUpdate:
 			OrderBackup[newOrder.Id] = append(OrderBackup[newOrder.Id], newOrder)
-			// Make function that deletes orders from backup when finished
+			
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
 			fmt.Println("AllElev: ", AllElevators)
 			fmt.Println("Setting all lights")
-			
-			setAllLights()
+			setAllLights() 
 			if !updatedElev.Online && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- false
-				fmt.Println("Going into PeerTxEnable FALSE")
 			} else if updatedElev.Online && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- true
-				fmt.Println("Going into PeerTxEnable TRUE")
 			}
 		}
 	}
@@ -200,6 +192,7 @@ func setAllLights() {
 				if btn == hw.BT_Cab && id != ID {
 					continue
 				}
+				
 				if elev.OrderQueue[floor][btn] && (elev.Online ||  btn == hw.BT_Cab) { // make this better 
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
@@ -213,10 +206,12 @@ func setAllLights() {
 			}
 			if lightsOff {
 				hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
+				fmt.Println("Turning lights off: ", btn, floor)
 			}
 		}
 	}
 }
+
 
 func duplicateOrder(btn hw.ButtonType, floor int) bool {
 	ID := GetElevIP()
@@ -224,7 +219,7 @@ func duplicateOrder(btn hw.ButtonType, floor int) bool {
 		if btn == hw.BT_Cab && id != ID {
 			continue
 		}
-		if elev.OrderQueue[floor][btn] {
+		if elev.OrderQueue[floor][btn] && elev.Online {
 			fmt.Println("Returning TRUE to duplicate")
 			return true
 		}

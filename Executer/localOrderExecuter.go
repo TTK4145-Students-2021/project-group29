@@ -40,14 +40,7 @@ func clearAllLights() {
 	}
 }
 
-func deleteHallOrders(elev Elevator) Elevator {
-	for floor := 0; floor < NumFloors; floor++ {
-		for btn := 0; btn < NumButtons-1; btn++ {
-			elev.OrderQueue[floor][btn] = false
-		}
-	}
-	return elev
-}
+
 
 //Moove to localOrderHandler??
 
@@ -148,9 +141,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				fmt.Println("ENGINE FAILURE")
 				elev.Online = false
 
-				orderChan.LocalElevUpdate <- elev
-				elev = deleteHallOrders(elev)
-				// stuff
+
 			}
 		case DOOROPEN:
 			select {

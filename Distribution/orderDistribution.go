@@ -17,12 +17,8 @@ import (
 
 var MessageQueue []Message
 var CurrentConfirmations []string
-
-// var mutex = &sync.Mutex{}
-
 var PrevRxMsgIDs map[string]int
 
-// var ElevMap map[string]Elevator
 
 
 
@@ -33,7 +29,6 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
-			//fmt.Println("Order recieved from SendOrder, assigner")
 			elevMsg := new(Elevator)
 
 			msg := Message{
@@ -44,31 +39,27 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 				ElevatorId:  id,
 			}
 			MessageQueue = append(MessageQueue, msg)
-			//fmt.Println("Map:", MessageQueue)
-			//fmt.Println("Adding order to messagequeue")
 
-			//MessageQueue[msg.MessageId] = msg
+
 
 		case localElevUpdate := <-orderChan.LocalElevUpdate:
-			orderMsg := new(Order)
+				orderMsg := new(Order)
 
-			msg := Message{
-				OrderMsg:    *orderMsg,
-				ElevatorMsg: localElevUpdate,
-				MsgType:     ELEVSTATUS,
-				MessageId:   TxMsgID,
-				ElevatorId:  id,
-			}
+				msg := Message{
+					OrderMsg:    *orderMsg,
+					ElevatorMsg: localElevUpdate,
+					MsgType:     ELEVSTATUS,
+					MessageId:   TxMsgID,
+					ElevatorId:  id,
+				}
 
-			MessageQueue = append(MessageQueue, msg)
-			//fmt.Println("Adding elevstate to messagequeue")
-			//MessageQueue[msg.MessageId] = msg // denne refererer som at det skulle vært en map!
-
+				MessageQueue = append(MessageQueue, msg)
 		}
 		TxMsgID++
 	}
 
 }
+
 
 func TxMessage(netChan NetworkChannels) {
 	for {
