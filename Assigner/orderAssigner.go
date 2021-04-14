@@ -49,9 +49,6 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 		case offlineElev := <-orderChan.ReassignOrders:
 			id := "No ID"
 			fmt.Println("Recieved lost peer")
-			elev := AllElevators[lostPeer]
-			fmt.Println("Elevator", elev)
-			fmt.Println("Recieved lost peer")
 			elev := AllElevators[offlineElev]
 			fmt.Println("Elevator 1", elev)
 			for floor := 0; floor < NumFloors; floor++ {
@@ -120,6 +117,7 @@ func PeerUpdate(netChan NetworkChannels, orderChan OrderChannels) {
 					AllElevators[p.New] = elev
 				}
 				NumElevators++
+				//orderChan.CopyOfAllElevators <- AllElevators
 			}
 			if len(p.Lost) > 0 {
 				for _, lostPeer := range p.Lost { // If elevator is lost, going offline
@@ -129,8 +127,9 @@ func PeerUpdate(netChan NetworkChannels, orderChan OrderChannels) {
 					AllElevators[lostPeer] = elev
 					NumElevators--
 					orderChan.ReassignOrders <- lostPeer
-
 				}
+				// orderChan.CopyOfAllElevators <- AllElevators
+
 			}
 		}
 	}

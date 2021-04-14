@@ -19,7 +19,7 @@ func main() {
 	assigner.OrderBackup = make(map[string][]Order)
 	assigner.SetLights = make(map[string]bool)
 	distributer.PrevRxMsgIDs = make(map[string]int)
-	
+
 	// Making all channels (evt. make a function "InitializeChannels")
 
 	orderChan := OrderChannels{
@@ -32,7 +32,8 @@ func main() {
 		LocalOrder: make(chan Order),
 		//From executer to distributor
 		LocalElevUpdate: make(chan Elevator),
-		ReassignOrders: make(chan string),
+		ReassignOrders:  make(chan string),
+		// CopyOfAllElevators: make(chan map[string]Elevator),
 	}
 
 	hwChan := HardwareChannels{
