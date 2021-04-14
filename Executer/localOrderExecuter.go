@@ -156,6 +156,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			case <-engineFailure.C:
 				fmt.Println("ENGINE FAILURE")
 				elev.Online = false
+
 				orderChan.LocalElevUpdate <- elev
 				elev = deleteHallOrders(elev)
 				// stuff
@@ -180,22 +181,25 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					numberOfTimeouts++
-					if numberOfTimeouts == 3 {
+					if numberOfTimeouts == 2 {
 						elev.Online = false
+
 						//NumElevators++
 						orderChan.LocalElevUpdate <- elev
-						elev = deleteHallOrders(elev)
+						//elev = deleteHallOrders(elev)
 						numberOfTimeouts = 0
 					}
 				} else if elev.Dir == hw.MD_Stop {
 					elev.State = IDLE
 					elev.Online = true
+
 					//NumElevators--
 					engineFailure.Stop()
 					numberOfTimeouts = 0
 				} else {
 					elev.State = MOVING
 					elev.Online = true
+
 					//NumElevators--
 					engineFailure.Reset((3 * time.Second)) // engineFailure resets whenever an elevator starts moving and has reached a floor.
 					numberOfTimeouts = 0
