@@ -27,8 +27,6 @@ func ordersBelow(elev Elevator) bool {
 	return false
 }
 
-
-
 func ChooseDirection(elev Elevator, rememberDir hw.MotorDirection) hw.MotorDirection {
 	switch rememberDir {
 	case hw.MD_Up:
@@ -74,40 +72,54 @@ func ShouldStop(elev Elevator) bool {
 	return true
 }
 
-func ClearOrdersAtCurrentFloor(elev Elevator) Elevator { //, onClearedRequest func(hw.ButtonType,int)
-
-	elev.OrderQueue[elev.Floor][hw.BT_Cab] = false
-	switch elev.Dir {
+func ClearOrdersAtCurrentFloor(params ClearOrdersParams) Elevator {
+	params.Elev.OrderQueue[params.Elev.Floor][hw.BT_Cab] = false
+	haveFunction := !(params.IfEqual == nil)
+	switch params.Elev.Dir {
 	case hw.MD_Up:
-		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
-		if !ordersAbove(elev) {
-			elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
+		if haveFunction { // check ifRequest
+			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
+		}
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
+		if !ordersAbove(params.Elev) {
+			if haveFunction { // check ifRequest
+				params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
+			}
+			params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
 		}
 		break
 
 	case hw.MD_Down:
-		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
-		if !ordersBelow(elev) {
-			elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
+		if haveFunction { // check ifRequest
+			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
+		}
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
+		if !ordersBelow(params.Elev) {
+			if haveFunction { // check ifRequest
+				params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
+			}
+			params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
 		}
 		break
 
 	case hw.MD_Stop:
-	
+		if haveFunction { // check ifRequest
+			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
+			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
+		}
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
+		break
+
 	default:
-		elev.OrderQueue[elev.Floor][hw.BT_HallUp] = false
-		elev.OrderQueue[elev.Floor][hw.BT_HallDown] = false
+		if haveFunction { // check ifRequest
+			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
+			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
+		}
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
+		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
 		break
 	}
 
-	/*if onClearedRequest != nil {
-		for btn := 0 ; btn < NumButtons-1 ; btn ++ {
-			if elev.OrderQueue[elev.Floor][btn] == false {
-				onClearedRequest(btn, elev.Floor)
-			}
-		}
-	}
-	*/
-	
-	return elev
+	return params.Elev
 }

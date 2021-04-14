@@ -15,7 +15,11 @@ const (
 )
 
 var NumElevators = 0
-var AllElevators map[string]Elevator
+
+type ClearOrdersParams struct {
+	Elev    Elevator
+	IfEqual func(hw.ButtonType, int)
+}
 
 type Order struct {
 	Floor  int

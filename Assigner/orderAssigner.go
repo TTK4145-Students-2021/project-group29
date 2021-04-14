@@ -38,7 +38,7 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			if buttonPress.Button == hw.BT_Cab {
 				id = GetElevIP()
 			} else {
-				id = costFunction(AllElevators)
+				id = costFunction(AllElevators, buttonPress.Button, buttonPress.Floor)
 			}
 			if !duplicateOrder(buttonPress.Button, buttonPress.Floor) {
 				newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
@@ -55,7 +55,7 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 				for btn := 0; btn < NumButtons-1; btn++ {
 					if elev.OrderQueue[floor][btn] {
 						fmt.Println("Going into if statement")
-						id = costFunction(AllElevators)
+						id = costFunction(AllElevators, hw.ButtonType(btn),floor)
 						elev.OrderQueue[floor][btn] = false
 						AllElevators[offlineElev] = elev
 						fmt.Println("Elevator 1", elev)
@@ -137,12 +137,12 @@ func PeerUpdate(netChan NetworkChannels, orderChan OrderChannels) {
 	}
 }
 
-func costFunction(allElev map[string]Elevator) string {
+func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) string {
 	minTime := -1
 	minId := ""
 	for id, elev := range allElev {
 		if elev.Online {
-			time := timeToIdle(elev)
+			time := timeToServeRequest(elev, btn, floor)
 			if time < minTime || minTime == -1 {
 				minTime = time
 				minId = id
@@ -153,45 +153,46 @@ func costFunction(allElev map[string]Elevator) string {
 
 }
 
-func timeToIdle(elev Elevator) int {
-	/*e := elev
+func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
+	e := elev
 	e.OrderQueue[floor][btn] = true
 
 	arrivedAtRequest := false
-
 	ifEqual := func(inner_b hw.ButtonType, inner_f int) {
 		if inner_b == btn && inner_f == floor {
 			arrivedAtRequest = true
 		}
-	}*/
+	}
 
 	duration := 0
 
-	switch elev.State {
+	switch e.State {
 	case IDLE:
-		elev.Dir = exe.ChooseDirection(elev, elev.Dir)
-		if elev.Dir == hw.MD_Stop {
+		e.Dir = exe.ChooseDirection(e, e.Dir)
+		if e.Dir == hw.MD_Stop {
 			return duration
 		}
 		break
 	case MOVING:
 		duration += TravelTime / 2 //Define travel time later
-		elev.Floor += int(elev.Dir)
+		e.Floor += int(e.Dir)
 		break
 	case DOOROPEN:
 		duration -= DoorOpenTime / 2
 	}
+
 	for {
-		if exe.ShouldStop(elev) {
-			elev = exe.ClearOrdersAtCurrentFloor(elev)
-			if elev.Dir == hw.MD_Stop {
+		if exe.ShouldStop(e) {
+			parameters := ClearOrdersParams{Elev: e, IfEqual: ifEqual}
+			e = exe.ClearOrdersAtCurrentFloor(parameters)
+			if arrivedAtRequest {
 				return duration
 			}
 			duration += DoorOpenTime
-			elev.Dir = exe.ChooseDirection(elev, elev.Dir)
+			e.Dir = exe.ChooseDirection(e, e.Dir)
 
 		}
-		elev.Floor += int(elev.Dir)
+		e.Floor += int(e.Dir)
 		duration += TravelTime
 	}
 }

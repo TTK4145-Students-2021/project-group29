@@ -26,6 +26,7 @@ func GetElevIP() string {
 }
 
 func InitElev() {
+	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]),NumFloors)
 	hw.Init("localhost:15653", NumFloors)
 
 	clearAllLights()
@@ -105,6 +106,10 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	var numberOfTimeouts = 0
 	//var recentEngineFailure = false
 
+	/*ifEqualEmpty := func(a hw.ButtonType, b int) {
+		fmt.Println(b)
+	} // can this be an empty function of some type?
+	*/
 	for {
 		switch elev.State {
 		case IDLE:
@@ -135,7 +140,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				elev.Online = true
 
 				if ShouldStop(elev) {
-					elev = ClearOrdersAtCurrentFloor(elev)
+					parameters := ClearOrdersParams{Elev: elev}
+					elev = ClearOrdersAtCurrentFloor(parameters)
 					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN
@@ -206,5 +212,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		enrollHardware(elev)
 		//Implement again when more than one elevator
 		orderChan.LocalElevUpdate <- elev // Have to implement these more places?
+		// fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
 	}
 }
