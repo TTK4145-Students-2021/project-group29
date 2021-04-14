@@ -83,8 +83,10 @@ func UpdateAssigner(orderChan OrderChannels, netChan NetworkChannels) {
 			setAllLights()
 			if !updatedElev.Online && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- false
-			} else {
+				fmt.Println("Going into PeerTxEnable FALSE")
+			} else if updatedElev.Online && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- true
+				fmt.Println("Going into PeerTxEnable TRUE")
 			}
 		}
 	}
