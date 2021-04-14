@@ -4,17 +4,15 @@ package Distribution
 // Functions from Network
 // messagetype, messageid, elevator, order
 import (
-	"os"
+	
 	// "sync"
 	"time"
-
-	"fmt"
 
 	"strings"
 
 	assigner "../Assigner"
 	. "../Common"
-	localip "../Network/network/localip"
+
 )
 
 var MessageQueue []Message
@@ -26,20 +24,11 @@ var PrevRxMsgIDs map[string]int
 
 // var ElevMap map[string]Elevator
 
-func getElevIP() string {
-	// Adds elevator-ID (localIP + process ID)
-	localIP, err := localip.LocalIP()
-	if err != nil {
-		fmt.Println(err)
-		localIP = "DISCONNECTED"
-	}
-	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
-	return id
-}
+
 
 func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 	TxMsgID := 0 // id iterator
-	id := getElevIP()
+	id := GetElevIP()
 
 	for {
 		select {
@@ -119,7 +108,7 @@ func TxMessage(netChan NetworkChannels) {
 }
 
 func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
-	id := getElevIP()
+	id := GetElevIP()
 	for {
 		select {
 		/*case recievedCopy := <-orderChan.CopyOfAllElevators:
@@ -172,7 +161,7 @@ func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
 }
 
 func sendConfirmation(rxMessage Message, netChan NetworkChannels) {
-	id := getElevIP()
+	id := GetElevIP()
 	//elev := assigner.AllElevators[id]
 	//if elev.Online {
 	msg := rxMessage

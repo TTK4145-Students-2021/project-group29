@@ -62,7 +62,7 @@ func main() {
 	go bcast.Receiver(42034, netChan.RecieveMessage)
 	go bcast.Transmitter(42034, netChan.BcastMessage)
 	go peers.Receiver(42035, netChan.PeerUpdateCh)
-	go peers.Transmitter(42035, assigner.GetElevIP(), netChan.PeerTxEnable)
+	go peers.Transmitter(42035, GetElevIP(), netChan.PeerTxEnable)
 
 	// Goroutine of Assigner
 	go assigner.AssignOrder(hwChan, orderChan)

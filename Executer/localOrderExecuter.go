@@ -5,31 +5,21 @@ import (
 
 	hw "../Driver/elevio"
 
-	localip "../Network/network/localip"
-
 	. "../Common"
 
-	"fmt"
-
 	"os"
+
+	"fmt"
 )
 
-func GetElevIP() string {
-	// Adds elevator-ID (localIP + process ID)
-	localIP, err := localip.LocalIP()
-	if err != nil {
-		fmt.Println(err)
-		localIP = "DISCONNECTED"
-	}
-	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
-	return id
-}
+
 
 func InitElev() {
 	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]),NumFloors)
 	hw.Init("localhost:15653", NumFloors)
 
 	clearAllLights()
+
 
 	hw.SetMotorDirection(hw.MD_Down)
 	for hw.GetFloor() != 0 {
@@ -184,10 +174,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					numberOfTimeouts++
 					if numberOfTimeouts == 2 {
 						elev.Online = false
-
-						//NumElevators++
-						orderChan.LocalElevUpdate <- elev
-						//elev = deleteHallOrders(elev)
 						numberOfTimeouts = 0
 					}
 				} else if elev.Dir == hw.MD_Stop {

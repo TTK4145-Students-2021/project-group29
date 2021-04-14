@@ -7,27 +7,16 @@ import (
 
 	hw "../Driver/elevio"
 
-	localip "../Network/network/localip"
 
 	exe "../Executer"
 
-	"os"
 )
 
 var AllElevators map[string]Elevator
 var OrderBackup map[string][]Order
 var SetLights map[string]bool
 
-func GetElevIP() string {
-	// Adds elevator-ID (localIP + process ID)
-	localIP, err := localip.LocalIP()
-	if err != nil {
-		fmt.Println(err)
-		localIP = "DISCONNECTED"
-	}
-	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
-	return id
-}
+
 
 func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 	for {
@@ -54,17 +43,18 @@ func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons-1; btn++ {
 					if elev.OrderQueue[floor][btn] {
-						fmt.Println("Going into if statement")
 						id = costFunction(AllElevators, hw.ButtonType(btn),floor)
 						elev.OrderQueue[floor][btn] = false
+						fmt.Println("Setting obstructed elev order to false")
 						AllElevators[offlineElev] = elev
-						fmt.Println("Elevator 1", elev)
+						
 						if !duplicateOrder(hw.ButtonType(btn), floor) {
 							newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
 							fmt.Println("Sending reassigned order!")
 							orderChan.SendOrder <- newOrder
 						}
 
+						
 					}
 				}
 			}
@@ -80,6 +70,9 @@ func UpdateAssigner(orderChan OrderChannels, netChan NetworkChannels) {
 			// Make function that deletes orders from backup when finished
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
+			fmt.Println("AllElev: ", AllElevators)
+			fmt.Println("Setting all lights")
+			
 			setAllLights()
 			if !updatedElev.Online && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- false
@@ -207,10 +200,10 @@ func setAllLights() {
 				if btn == hw.BT_Cab && id != ID {
 					continue
 				}
-				if elev.OrderQueue[floor][btn] && elev.Online {
+				if elev.OrderQueue[floor][btn] && (elev.Online ||  btn == hw.BT_Cab) { // make this better 
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
-				}
+				} 
 			}
 			lightsOff = true
 			for _, val := range SetLights {
