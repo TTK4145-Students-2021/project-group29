@@ -1,6 +1,8 @@
 package Executer
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	hw "../Driver/elevio"
@@ -18,6 +20,8 @@ func InitElev() {
 	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]),NumFloors)
 	clearAllLights()
 	hw.SetMotorDirection(hw.MD_Down)
+	//enten gjør caborders som er på fil eller kjør den under
+	// caborders må kontinuerlig bli oppdatert! Gjøres excecuter når vi mottar knappetrykk og når vi gjennomfører en order
 	for hw.GetFloor() != 0 {
 
 	}
@@ -33,6 +37,20 @@ func clearAllLights() {
 			hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
 		}
 	}
+}
+func errors(err error) {
+	if err != nil {
+		fmt.Println(err)
+	}
+	return
+}
+
+func cabOrderBackup(elev Elevator) {
+	f, err := os.Create("backupminID.txt")
+	errors(err)
+	l, err := f.WriteString("Order queue")
+	errors(err)
+	fmt.Println(l)
 }
 
 
@@ -100,6 +118,9 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
 				} else {
+					if newOrder.Button == hw.BT_Cab {
+						cabOrderBackup(elev)
+					}
 					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 					elev.State = MOVING
 					elev.Dir = ChooseDirection(elev, rememberDir)
@@ -111,6 +132,9 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			select {
 			case newOrder := <-orderChan.LocalOrder:
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
+				if newOrder.Button == hw.BT_Cab {
+					cabOrderBackup(elev)
+				}
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
 				elev.Floor = newFloor //remove this?? So that the code is alike
