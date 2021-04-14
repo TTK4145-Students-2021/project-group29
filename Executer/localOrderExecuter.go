@@ -7,13 +7,11 @@ import (
 
 	localip "../Network/network/localip"
 
-
 	. "../Common"
 
 	"fmt"
 
 	"os"
-
 )
 
 func GetElevIP() string {
@@ -51,6 +49,15 @@ func clearAllLights() {
 	}
 }
 
+func deleteHallOrders(elev Elevator) Elevator {
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons-1; btn++ {
+			elev.OrderQueue[floor][btn] = false
+		}
+	}
+	return elev
+}
+
 //Moove to localOrderHandler??
 
 func enrollHardware(elev Elevator) {
@@ -59,7 +66,7 @@ func enrollHardware(elev Elevator) {
 	hw.SetMotorDirection(elev.Dir)
 	hw.SetDoorOpenLamp(DOOROPEN == elev.State)
 
-	if !elev.Online {
+	/*if !elev.Online {
 		hw.SetMotorDirection(hw.MD_Stop)
 		for i := 0; i < 5; i++ {
 			hw.SetStopLamp(true)
@@ -67,7 +74,7 @@ func enrollHardware(elev Elevator) {
 			hw.SetStopLamp(false)
 		}
 		hw.SetMotorDirection(elev.Dir)
-	}
+	}*/
 }
 
 func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
@@ -95,6 +102,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	engineFailure.Stop()
 
 	var rememberDir hw.MotorDirection
+	var numberOfTimeouts = 0
 	//var recentEngineFailure = false
 
 	for {
@@ -125,17 +133,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
 				elev.Floor = newFloor //remove this?? So that the code is alike
 				elev.Online = true
-				/*if recentEngineFailure {
-					elev.Online = true
-
-					fmt.Println("Recent engine failure")
-					for floor := 0; floor < NumFloors; floor++ {
-						for btn := 0; btn < NumButtons-1; btn++ { 
-							elev.OrderQueue[floor][btn] = false
-						}
-					}
-					recentEngineFailure = false
-				}*/
 
 				if ShouldStop(elev) {
 					elev = ClearOrdersAtCurrentFloor(elev)
@@ -154,9 +151,9 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			case <-engineFailure.C:
 				fmt.Println("ENGINE FAILURE")
 				elev.Online = false
-				/*recentEngineFailure = true
-				orderChan.ReassignOrders <- GetElevIP()
-				engineFailure.Reset(5 * time.Second)*/
+				orderChan.LocalElevUpdate <- elev
+				elev = deleteHallOrders(elev)
+				// stuff
 			}
 		case DOOROPEN:
 			select {
@@ -177,12 +174,26 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					doorTimeout.Reset(3 * time.Second) // Does the door have to be open 3 seconds after not obstructed????
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
+					numberOfTimeouts++
+					if numberOfTimeouts == 3 {
+						elev.Online = false
+						//NumElevators++
+						orderChan.LocalElevUpdate <- elev
+						elev = deleteHallOrders(elev)
+						numberOfTimeouts = 0
+					}
 				} else if elev.Dir == hw.MD_Stop {
 					elev.State = IDLE
+					elev.Online = true
+					//NumElevators--
 					engineFailure.Stop()
+					numberOfTimeouts = 0
 				} else {
 					elev.State = MOVING
+					elev.Online = true
+					//NumElevators--
 					engineFailure.Reset((3 * time.Second)) // engineFailure resets whenever an elevator starts moving and has reached a floor.
+					numberOfTimeouts = 0
 				}
 				break
 			}

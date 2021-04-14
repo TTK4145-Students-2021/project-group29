@@ -15,6 +15,7 @@ const (
 )
 
 var NumElevators = 0
+var AllElevators map[string]Elevator
 
 type Order struct {
 	Floor  int
@@ -75,9 +76,10 @@ type OrderChannels struct {
 	//From distributer to assigner
 	OrderBackupUpdate chan Order
 	RecieveElevUpdate chan Elevator
+	// CopyOfAllElevators chan map[string]Elevator
 	//From distributor to executer
 	LocalOrder chan Order
 	//From executer to distributor
 	LocalElevUpdate chan Elevator
-	ReassignOrders chan string
+	ReassignOrders  chan string
 }
