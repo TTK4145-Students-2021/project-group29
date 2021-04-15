@@ -23,7 +23,6 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 		select {
 		case buttonPress := <-hwChan.HwButtons:
 			id := "No ID"
-			// Cost function returning ID of elevator taking the order
 			if buttonPress.Button == hw.BT_Cab {
 				id = GetElevIP()
 			} else {
@@ -37,21 +36,18 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			OrderBackup[newOrder.Id] = append(OrderBackup[newOrder.Id], newOrder)
 			
 		case updatedElev := <-orderChan.RecieveElevUpdate:
-			fmt.Println("Recieving elev update")
 			AllElevators[updatedElev.Id] = updatedElev
 			setAllLights()
 			if !updatedElev.Online && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- false
 			} else if updatedElev.Online && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- true
-				fmt.Println("Enabling peer again")
 			}	
 		case peer := <-netChan.PeerUpdateCh:
 			fmt.Printf("Peer update:\n")
 			fmt.Printf("  Peers:    %q\n", peer.Peers)
 			fmt.Printf("  New:      %q\n", peer.New)
 			fmt.Printf("  Lost:     %q\n", peer.Lost)
-			fmt.Println(len(peer.Lost))
 			if peer.New != "" {
 				if elev, foundPeer := AllElevators[peer.New]; foundPeer { // If elevator is found again, going online
 					elev.Online = true
@@ -77,101 +73,12 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 					elev.Online = false
 					AllElevators[lostPeer] = elev
 					NumElevators--
-					id := "No ID"
-					fmt.Println("Recieved lost peer")
-					for floor := 0; floor < NumFloors; floor++ {
-						for btn := 0; btn < NumButtons-1; btn++ {
-							if elev.OrderQueue[floor][btn] {
-								id = costFunction(AllElevators, hw.ButtonType(btn),floor)
-								if !duplicateOrder(hw.ButtonType(btn), floor) {
-									newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
-									fmt.Println("Sending reassigned order!")
-									orderChan.SendOrder <- newOrder
-								}
-							}
-						}
-					}
-
+					reassignOrders(elev, orderChan)
 				}
 			}
-		
 		}
 	}
 }
-
-/* func AssignOrder(hwChan HardwareChannels, orderChan OrderChannels) {
-	for {
-		select {
-		case buttonPress := <-hwChan.HwButtons:
-			id := "No ID"
-			// Cost function returning ID of elevator taking the order
-			if buttonPress.Button == hw.BT_Cab {
-				id = GetElevIP()
-			} else {
-				id = costFunction(AllElevators, buttonPress.Button, buttonPress.Floor)
-			}
-			if !duplicateOrder(buttonPress.Button, buttonPress.Floor) {
-
-				newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
-				orderChan.SendOrder <- newOrder
-			}
-
-		}
-	}
-}*/
-
-/*func UpdateAssigner(orderChan OrderChannels) {
-	for {
-		select {
-		case newOrder := <-orderChan.OrderBackupUpdate:
-			OrderBackup[newOrder.Id] = append(OrderBackup[newOrder.Id], newOrder)
-			// Make function that deletes orders from backup when finished
-		case updatedElev := <-orderChan.RecieveElevUpdate:
-			AllElevators[updatedElev.Id] = updatedElev
-			setAllLights()
-
-		}
-	}
-}*/
-
-/*func PeerUpdate(netChan NetworkChannels) {
-	for {
-		select {
-		case p := <-netChan.PeerUpdateCh:
-			fmt.Printf("Peer update:\n")
-			fmt.Printf("  Peers:    %q\n", p.Peers)
-			fmt.Printf("  New:      %q\n", p.New)
-			fmt.Printf("  Lost:     %q\n", p.Lost)
-			if p.New != "" {
-				if elev, found := AllElevators[p.New]; found { // If elevator is found again, going online
-					elev.Online = true
-					AllElevators[p.New] = elev
-
-				} else { // If elevator is new, needs to be created
-					elev := Elevator{
-						Id:         p.New,
-						Floor:      0,
-						Dir:        hw.MD_Stop,
-						State:      IDLE,
-						Online:     true,
-						OrderQueue: [NumFloors][NumButtons]bool{},
-						Obstructed: false,
-					}
-					AllElevators[p.New] = elev
-				}
-				NumElevators++
-			}
-			if len(p.Lost) > 0 {
-				for _, lostPeer := range p.Lost { // If elevator is lost, going offline
-					elev := AllElevators[lostPeer]
-					elev.Online = false
-					AllElevators[lostPeer] = elev
-					NumElevators--
-				}
-			}
-		}
-	}
-}*/
 
 func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) string {
 	minTime := -1
@@ -187,6 +94,29 @@ func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) str
 	}
 	return minId
 
+}
+
+func reassignOrders(offlineElev Elevator, orderChan OrderChannels) {
+	myId := GetElevIP()
+	for allId, allElev := range AllElevators {
+		if allElev.Online {
+			if allId == myId {
+				for floor := 0; floor < NumFloors; floor++ {
+					for btn := 0; btn < NumButtons-1; btn++ {
+						if offlineElev.OrderQueue[floor][btn] {
+							id := costFunction(AllElevators, hw.ButtonType(btn),floor)
+							if !duplicateOrder(hw.ButtonType(btn), floor) {
+								newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
+								orderChan.SendOrder <- newOrder
+								fmt.Println("Sending reassigned order")
+							}
+						}
+					}
+				}
+			}
+			break
+		}
+	}
 }
 
 func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
@@ -235,6 +165,7 @@ func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
 
 func setAllLights() {
 	ID := GetElevIP()
+	myElev := AllElevators[ID]
 	var lightsOff bool
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
@@ -244,7 +175,7 @@ func setAllLights() {
 					continue
 				}
 				
-				if elev.OrderQueue[floor][btn] && (elev.Online ||  btn == hw.BT_Cab) { // make this better 
+				if elev.OrderQueue[floor][btn] && elev.Online { // make this better 
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
 				} 
@@ -255,9 +186,12 @@ func setAllLights() {
 					lightsOff = false
 				}
 			}
+			if !myElev.Online {
+				lightsOff = false
+			}
+
 			if lightsOff {
 				hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
-				fmt.Println("Turning lights off: ", btn, floor)
 			}
 		}
 	}
@@ -271,10 +205,8 @@ func duplicateOrder(btn hw.ButtonType, floor int) bool {
 			continue
 		}
 		if elev.OrderQueue[floor][btn] && elev.Online {
-			fmt.Println("Returning TRUE to duplicate")
 			return true
 		}
 	}
-	fmt.Println("Returning FALSE to duplicate")
 	return false
 }

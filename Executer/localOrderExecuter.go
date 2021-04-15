@@ -16,15 +16,11 @@ import (
 
 func InitElev() {
 	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]),NumFloors)
-
 	clearAllLights()
-
-
 	hw.SetMotorDirection(hw.MD_Down)
 	for hw.GetFloor() != 0 {
 
 	}
-
 	hw.SetMotorDirection(hw.MD_Stop)
 	hw.SetFloorIndicator(0)
 
@@ -114,7 +110,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		case MOVING:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				//fmt.Println("Order recieved of executer")
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
@@ -128,8 +123,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
-					//fmt.Printf("%+v\n", elev)
-					// Here we need to set Order to Finished and send it to Assigner, so it can update global map
 					engineFailure.Stop()
 				} else {
 					engineFailure.Reset((3 * time.Second)) // If reached floor, reset engineFailure-timer
@@ -139,13 +132,10 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			case <-engineFailure.C:
 				fmt.Println("ENGINE FAILURE")
 				elev.Online = false
-
-
 			}
 		case DOOROPEN:
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				//fmt.Println("Order recieved of executer")
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
@@ -162,7 +152,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					numberOfTimeouts++
-					if numberOfTimeouts == 2 {
+					if numberOfTimeouts == 3 {
 						elev.Online = false
 						numberOfTimeouts = 0
 					}

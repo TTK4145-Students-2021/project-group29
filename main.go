@@ -12,7 +12,6 @@ import (
 
 func main() {
 
-	// Init hardware??
 	executer.InitElev()
 
 	assigner.AllElevators = make(map[string]Elevator)
@@ -66,13 +65,8 @@ func main() {
 
 	// Goroutine of Assigner
 	go assigner.Assigner(hwChan, orderChan, netChan)
-	//go assigner.UpdateAssigner(orderChan)
-	//go assigner.PeerUpdate(netChan)
 
-	// Goroutine of Distributer
-	//go distributer.AddToMessageQueue(netChan, orderChan)
-	//go distributer.TxMessage(netChan)
-	//go distributer.RxMessage(netChan, orderChan)
+	// Goroutine of Distibuter
 	go distributer.Reciever(netChan, orderChan)
 	go distributer.Transmitter(netChan, orderChan)
 
