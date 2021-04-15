@@ -1,12 +1,15 @@
 package Common
 
 import (
-	hw "../Driver/elevio"
-	p "../Network/network/peers"
-	"os"
-	
-	localip "../Network/network/localip"
 	"fmt"
+	"os"
+
+	"fmt"
+	"os"
+
+	hw "../Driver/elevio"
+	localip "../Network/network/localip"
+	p "../Network/network/peers"
 )
 
 // import "fmt"
@@ -21,7 +24,6 @@ func GetElevIP() string {
 	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
 	return id
 }
-
 
 const (
 	NumFloors    = 4

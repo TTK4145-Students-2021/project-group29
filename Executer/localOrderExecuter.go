@@ -3,6 +3,7 @@ package Executer
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	hw "../Driver/elevio"
@@ -14,10 +15,8 @@ import (
 	"fmt"
 )
 
-
-
 func InitElev() {
-	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]),NumFloors)
+	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]), NumFloors)
 	clearAllLights()
 	hw.SetMotorDirection(hw.MD_Down)
 	//enten gjør caborders som er på fil eller kjør den under
@@ -46,14 +45,20 @@ func errors(err error) {
 }
 
 func cabOrderBackup(elev Elevator) {
-	f, err := os.Create("backupminID.txt")
+	filename := "cabOrder " + GetElevIP() + ".txt"
+	f, err := os.Create(filename)
 	errors(err)
-	l, err := f.WriteString("Order queue")
-	errors(err)
-	fmt.Println(l)
+
+	caborders := make([]bool, 0)
+	for _, row := range elev.OrderQueue {
+		caborders = append(caborders, row[NumButtons-1])
+	}
+	cabordersString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(caborders)), " "), "[]")
+	fmt.Println(cabordersString)
+	_, err = f.WriteString(cabordersString)
+
+	// other way around https://stackoverflow.com/questions/10783405/how-to-convert-string-into-boolean-array
 }
-
-
 
 //Moove to localOrderHandler??
 
@@ -118,9 +123,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(3 * time.Second)
 				} else {
-					if newOrder.Button == hw.BT_Cab {
-						cabOrderBackup(elev)
-					}
 					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 					elev.State = MOVING
 					elev.Dir = ChooseDirection(elev, rememberDir)
@@ -132,9 +134,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			select {
 			case newOrder := <-orderChan.LocalOrder:
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
-				if newOrder.Button == hw.BT_Cab {
-					cabOrderBackup(elev)
-				}
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
 				elev.Floor = newFloor //remove this?? So that the code is alike
@@ -199,8 +198,10 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		}
 
 		enrollHardware(elev)
+		cabOrderBackup(elev)
 		//Implement again when more than one elevator
 		orderChan.LocalElevUpdate <- elev // Have to implement these more places?
 		// fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
+
 	}
 }

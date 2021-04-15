@@ -7,16 +7,12 @@ import (
 
 	hw "../Driver/elevio"
 
-	
 	exe "../Executer"
-
 )
 
 var AllElevators map[string]Elevator
 var OrderBackup map[string][]Order
 var SetLights map[string]bool
-
-
 
 func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkChannels) {
 	for {
@@ -34,7 +30,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			}
 		case newOrder := <-orderChan.OrderBackupUpdate:
 			OrderBackup[newOrder.Id] = append(OrderBackup[newOrder.Id], newOrder)
-			
+
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
 			setAllLights()
@@ -42,7 +38,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 				netChan.PeerTxEnable <- false
 			} else if updatedElev.Online && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- true
-			}	
+			}
 		case peer := <-netChan.PeerUpdateCh:
 			fmt.Printf("Peer update:\n")
 			fmt.Printf("  Peers:    %q\n", peer.Peers)
@@ -104,7 +100,7 @@ func reassignOrders(offlineElev Elevator, orderChan OrderChannels) {
 				for floor := 0; floor < NumFloors; floor++ {
 					for btn := 0; btn < NumButtons-1; btn++ {
 						if offlineElev.OrderQueue[floor][btn] {
-							id := costFunction(AllElevators, hw.ButtonType(btn),floor)
+							id := costFunction(AllElevators, hw.ButtonType(btn), floor)
 							if !duplicateOrder(hw.ButtonType(btn), floor) {
 								newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
 								orderChan.SendOrder <- newOrder
@@ -174,11 +170,11 @@ func setAllLights() {
 				if btn == hw.BT_Cab && id != ID {
 					continue
 				}
-				
-				if elev.OrderQueue[floor][btn] && elev.Online { // make this better 
+
+				if elev.OrderQueue[floor][btn] && elev.Online { // make this better
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
-				} 
+				}
 			}
 			lightsOff = true
 			for _, val := range SetLights {
@@ -196,7 +192,6 @@ func setAllLights() {
 		}
 	}
 }
-
 
 func duplicateOrder(btn hw.ButtonType, floor int) bool {
 	ID := GetElevIP()
