@@ -18,7 +18,6 @@ func main() {
 	assigner.OrderBackup = make(map[string][]Order)
 	assigner.SetLights = make(map[string]bool)
 	distributer.PrevRxMsgIDs = make(map[string]int)
-
 	// Making all channels (evt. make a function "InitializeChannels")
 
 	orderChan := OrderChannels{
@@ -51,7 +50,6 @@ func main() {
 		BcastMessage:   make(chan Message),
 		RecieveMessage: make(chan Message),
 	}
-
 	// Goroutines of Hardware
 	go hw.PollButtons(hwChan.HwButtons)
 	go hw.PollFloorSensor(hwChan.HwFloor)

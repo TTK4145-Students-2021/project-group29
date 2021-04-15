@@ -2,7 +2,9 @@ package Executer
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,18 +17,65 @@ import (
 	"fmt"
 )
 
-func InitElev() {
-	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]), NumFloors)
-	clearAllLights()
-	hw.SetMotorDirection(hw.MD_Down)
-	//enten gjør caborders som er på fil eller kjør den under
-	// caborders må kontinuerlig bli oppdatert! Gjøres excecuter når vi mottar knappetrykk og når vi gjennomfører en order
-	for hw.GetFloor() != 0 {
+func errors(err error) {
+	if err != nil {
+		fmt.Println(err)
+	}
+	return
+}
 
+func InitElev() {
+
+	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]), NumFloors)
+
+	clearAllLights()
+
+	//enten gjør caborders som er på fil eller kjør den under
+	// other way around https://stackoverflow.com/questions/10783405/how-to-convert-string-into-boolean-array
+
+	hw.SetMotorDirection(hw.MD_Down)
+	for hw.GetFloor() == -1 {
 	}
 	hw.SetMotorDirection(hw.MD_Stop)
-	hw.SetFloorIndicator(0)
+	hw.SetFloorIndicator(hw.GetFloor())
+}
 
+func cabOrderBackup(elev Elevator) {
+	filename := "cabOrder " + os.Args[1] + ".txt"
+	f, err := os.Create(filename)
+	errors(err)
+
+	caborders := make([]bool, 0)
+	for _, row := range elev.OrderQueue {
+		caborders = append(caborders, row[NumButtons-1])
+	}
+	cabordersString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(caborders)), " "), "[]")
+	// fmt.Println(cabordersString)
+	_, err = f.WriteString(cabordersString)
+	defer f.Close()
+}
+
+func readFromBackup(orderChan OrderChannels) {
+	filename := "cabOrder " + os.Args[1] + ".txt"
+	f, err := ioutil.ReadFile(filename)
+	errors(err)
+	caborders := make([]bool, 0)
+	if err == nil {
+		s := strings.Split(string(f), " ")
+		for _, item := range s {
+			result, _ := strconv.ParseBool(item)
+			caborders = append(caborders, result)
+		}
+	}
+	id := GetElevIP()
+	for f, order := range caborders {
+		if order {
+			// fmt.Println(f)
+			newOrder := Order{Floor: f, Button: hw.BT_Cab, Id: id}
+			//fmt.Println("Sending order: ", newOrder)
+			orderChan.SendOrder <- newOrder
+		}
+	}
 }
 
 func clearAllLights() {
@@ -36,28 +85,6 @@ func clearAllLights() {
 			hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
 		}
 	}
-}
-func errors(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
-	return
-}
-
-func cabOrderBackup(elev Elevator) {
-	filename := "cabOrder " + GetElevIP() + ".txt"
-	f, err := os.Create(filename)
-	errors(err)
-
-	caborders := make([]bool, 0)
-	for _, row := range elev.OrderQueue {
-		caborders = append(caborders, row[NumButtons-1])
-	}
-	cabordersString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(caborders)), " "), "[]")
-	fmt.Println(cabordersString)
-	_, err = f.WriteString(cabordersString)
-
-	// other way around https://stackoverflow.com/questions/10783405/how-to-convert-string-into-boolean-array
 }
 
 //Moove to localOrderHandler??
@@ -83,14 +110,15 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 
 	// Initializing elevator
 	elev := Elevator{
-		Id:         "UNDEFINED",
-		Floor:      0,
+		Id:         GetElevIP(),
+		Floor:      hw.GetFloor(),
 		Dir:        hw.MD_Stop,
 		State:      IDLE,
 		Online:     true,
 		OrderQueue: [NumFloors][NumButtons]bool{},
 		Obstructed: false,
 	}
+	readFromBackup(orderChan)
 
 	// Executing channels
 	// go checkForObstruction(hwChan.HwObstruction, elev)
@@ -117,6 +145,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			rememberDir = elev.Dir
 			select {
 			case newOrder := <-orderChan.LocalOrder:
+				fmt.Println("Reciving order: ", newOrder)
 				//fmt.Println("Order recieved of executer")
 				elev.Id = newOrder.Id // Gets local ID from Peers
 				if elev.Floor == newOrder.Floor {
