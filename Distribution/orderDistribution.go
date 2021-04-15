@@ -4,6 +4,7 @@ package Distribution
 // Functions from Network
 // messagetype, messageid, elevator, order
 import (
+	"fmt"
 	"time"
 
 	"strings"
@@ -24,6 +25,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
+			//fmt.Println(newOrder)
 			elevMsg := new(Elevator)
 
 			msg := Message{
@@ -34,6 +36,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 				ElevatorId:  id,
 			}
 			MessageQueue = append(MessageQueue, msg)
+			//fmt.Println(MessageQueue)
 			TxMsgID++
 
 		case localElevUpdate := <-orderChan.LocalElevUpdate:
@@ -48,6 +51,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 			}
 
 			MessageQueue = append(MessageQueue, msg)
+			// fmt.Println(MessageQueue)
 			TxMsgID++
 
 		case <-TxMessageTicker.C:
@@ -69,7 +73,9 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 					}
 				}
 				if isOnline == confirmedOnline { // Check which elevators that are offline - length of allElevators
+					//fmt.Println(MessageQueue)
 					MessageQueue = MessageQueue[1:] //Pop message from queue
+					//fmt.Println(MessageQueue)
 					CurrentConfirmations = make([]string, 0)
 				} else {
 					netChan.BcastMessage <- msg
@@ -88,6 +94,7 @@ func Reciever(netChan NetworkChannels, orderChan OrderChannels) {
 			switch rxMessage.MsgType {
 			case ORDER:
 				isDuplicate := checkForDuplicate(rxMessage)
+				fmt.Println(rxMessage.OrderMsg.Floor)
 				if !isDuplicate {
 					orderChan.OrderBackupUpdate <- rxMessage.OrderMsg
 					if rxMessage.OrderMsg.Id == id {

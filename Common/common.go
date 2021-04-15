@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"fmt"
-	"os"
-
 	hw "../Driver/elevio"
 	localip "../Network/network/localip"
 	p "../Network/network/peers"

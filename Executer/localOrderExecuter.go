@@ -11,10 +11,6 @@ import (
 	hw "../Driver/elevio"
 
 	. "../Common"
-
-	"os"
-
-	"fmt"
 )
 
 func errors(err error) {
@@ -68,6 +64,7 @@ func readFromBackup(orderChan OrderChannels) {
 		}
 	}
 	id := GetElevIP()
+	time.Sleep(time.Second) // For some reason this happens to early. Is not the peer connected yet?
 	for f, order := range caborders {
 		if order {
 			// fmt.Println(f)
