@@ -12,7 +12,6 @@ import (
 
 func main() {
 
-	// Init hardware??
 	executer.InitElev()
 
 	assigner.AllElevators = make(map[string]Elevator)
@@ -32,6 +31,8 @@ func main() {
 		LocalOrder: make(chan Order),
 		//From executer to distributor
 		LocalElevUpdate: make(chan Elevator),
+		//ReassignOrders:  make(chan string),
+
 	}
 
 	hwChan := HardwareChannels{
@@ -60,17 +61,14 @@ func main() {
 	go bcast.Receiver(42034, netChan.RecieveMessage)
 	go bcast.Transmitter(42034, netChan.BcastMessage)
 	go peers.Receiver(42035, netChan.PeerUpdateCh)
-	go peers.Transmitter(42035, assigner.GetElevIP(), netChan.PeerTxEnable)
+	go peers.Transmitter(42035, GetElevIP(), netChan.PeerTxEnable)
 
 	// Goroutine of Assigner
-	go assigner.AssignOrder(hwChan, orderChan)
-	go assigner.UpdateAssigner(orderChan)
-	go assigner.PeerUpdate(netChan)
+	go assigner.Assigner(hwChan, orderChan, netChan)
 
-	// Goroutine of Distributer
-	go distributer.AddToMessageQueue(netChan, orderChan)
-	go distributer.TxMessage(netChan)
-	go distributer.RxMessage(netChan, orderChan)
+	// Goroutine of Distibuter
+	go distributer.Reciever(netChan, orderChan)
+	go distributer.Transmitter(netChan, orderChan)
 
 	// Goroutine of runElevator, in executer
 	go executer.RunElevator(hwChan, orderChan)

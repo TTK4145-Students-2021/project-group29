@@ -3,9 +3,25 @@ package Common
 import (
 	hw "../Driver/elevio"
 	p "../Network/network/peers"
+	"os"
+	
+	localip "../Network/network/localip"
+	"fmt"
 )
 
 // import "fmt"
+
+func GetElevIP() string {
+	// Adds elevator-ID (localIP + process ID)
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		fmt.Println(err)
+		localIP = "DISCONNECTED"
+	}
+	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
+	return id
+}
+
 
 const (
 	NumFloors    = 4
@@ -84,4 +100,5 @@ type OrderChannels struct {
 	LocalOrder chan Order
 	//From executer to distributor
 	LocalElevUpdate chan Elevator
+	//ReassignOrders  chan string
 }

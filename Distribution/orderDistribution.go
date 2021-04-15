@@ -4,42 +4,28 @@ package Distribution
 // Functions from Network
 // messagetype, messageid, elevator, order
 import (
-	"os"
 	"time"
-
-	"fmt"
 
 	"strings"
 
 	. "../Common"
 
-	localip "../Network/network/localip"
+	assigner "../Assigner"
+
+
 )
 
 var MessageQueue []Message
 var CurrentConfirmations []string
-
 var PrevRxMsgIDs map[string]int
 
-func getElevIP() string {
-	// Adds elevator-ID (localIP + process ID)
-	localIP, err := localip.LocalIP()
-	if err != nil {
-		fmt.Println(err)
-		localIP = "DISCONNECTED"
-	}
-	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
-	return id
-}
-
-func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
+func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
+	id := GetElevIP()
 	TxMsgID := 0 // id iterator
-	id := getElevIP()
-
+	TxMessageTicker := time.NewTimer(15 * time.Millisecond)
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
-			//fmt.Println("Order recieved from SendOrder, assigner")
 			elevMsg := new(Elevator)
 
 			msg := Message{
@@ -50,10 +36,7 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 				ElevatorId:  id,
 			}
 			MessageQueue = append(MessageQueue, msg)
-			//fmt.Println("Map:", MessageQueue)
-			//fmt.Println("Adding order to messagequeue")
-
-			//MessageQueue[msg.MessageId] = msg
+			TxMsgID++
 
 		case localElevUpdate := <-orderChan.LocalElevUpdate:
 			orderMsg := new(Order)
@@ -67,45 +50,46 @@ func AddToMessageQueue(netChan NetworkChannels, orderChan OrderChannels) {
 			}
 
 			MessageQueue = append(MessageQueue, msg)
-			//fmt.Println("Adding elevstate to messagequeue")
-			//MessageQueue[msg.MessageId] = msg // denne refererer som at det skulle vært en map!
+			TxMsgID++
+		
+		case <-TxMessageTicker.C:
+			if len(MessageQueue) != 0 {
+				msg := MessageQueue[0] // First element in queue
+				elevMap := assigner.AllElevators
+				isOnline := 0
+				confirmedOnline := 0
 
-		}
-		TxMsgID++
-	}
-
-}
-
-func TxMessage(netChan NetworkChannels) {
-	for {
-		if len(MessageQueue) != 0 {
-
-			msg := MessageQueue[0] // First element in queue
-
-			if len(CurrentConfirmations) == NumElevators { // Check which elevators that are offline - length of allElevators
-				MessageQueue = MessageQueue[1:] //Pop message from queue
-				CurrentConfirmations = make([]string, 0)
-
-			} else {
-				//fmt.Println("Message transmitted to network")
-				netChan.BcastMessage <- msg
+				for idElev, elev := range elevMap {
+					if elev.Online {
+						isOnline++
+					}
+					// if idElev in Currencomf
+					for _, idConfirmed := range CurrentConfirmations {
+						if elev.Online && idElev == idConfirmed {
+							confirmedOnline++
+						}
+					}
+				}
+				if isOnline == confirmedOnline { // Check which elevators that are offline - length of allElevators
+					MessageQueue = MessageQueue[1:] //Pop message from queue
+					CurrentConfirmations = make([]string, 0)
+				} else {
+					netChan.BcastMessage <- msg
+				}
 			}
-
+			TxMessageTicker.Reset(15 * time.Millisecond)
 		}
-		time.Sleep(15 * time.Millisecond)
-
 	}
-
 }
 
-func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
-	id := getElevIP()
+
+func Reciever(netChan NetworkChannels, orderChan OrderChannels) {
+	id := GetElevIP()
 	for {
 		select {
 		case rxMessage := <-netChan.RecieveMessage:
 			switch rxMessage.MsgType {
 			case ORDER:
-				//fmt.Println("Order recieved from network")
 				isDuplicate := checkForDuplicate(rxMessage)
 				if !isDuplicate {
 					orderChan.OrderBackupUpdate <- rxMessage.OrderMsg
@@ -145,7 +129,7 @@ func RxMessage(netChan NetworkChannels, orderChan OrderChannels) {
 }
 
 func sendConfirmation(rxMessage Message, netChan NetworkChannels) {
-	id := getElevIP()
+	id := GetElevIP()
 	msg := rxMessage
 	msg.MsgType = CONFIRMATION
 	msg.ElevatorId += "FROM" + id
