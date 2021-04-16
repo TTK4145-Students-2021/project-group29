@@ -26,9 +26,6 @@ func InitElev() {
 
 	clearAllLights()
 
-	//enten gjør caborders som er på fil eller kjør den under
-	// other way around https://stackoverflow.com/questions/10783405/how-to-convert-string-into-boolean-array
-
 	hw.SetMotorDirection(hw.MD_Down)
 	for hw.GetFloor() == -1 {
 	}
@@ -64,7 +61,7 @@ func readFromBackup(orderChan OrderChannels) {
 		}
 	}
 	id := GetElevIP()
-	time.Sleep(15 * time.Millisecond) // A small wait such that my elevator is connected as peer
+	time.Sleep(15 * time.Millisecond) // A small wait such that my elevator is connected as peer or something with tx message ticker?
 	for f, order := range caborders {
 		if order {
 			newOrder := Order{Floor: f, Button: hw.BT_Cab, Id: id}
@@ -121,10 +118,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	var numberOfTimeouts = 0
 	//var recentEngineFailure = false
 
-	/*ifEqualEmpty := func(a hw.ButtonType, b int) {
-		fmt.Println(b)
-	} // can this be an empty function of some type?
-	*/
 	for {
 		switch elev.State {
 		case IDLE:
