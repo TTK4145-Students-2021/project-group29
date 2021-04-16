@@ -162,6 +162,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			case <-engineFailure.C:
 				fmt.Println("ENGINE FAILURE")
 				elev.Online = false
+				engineFailure.Reset((3 * time.Second))
 			}
 		case DOOROPEN:
 			select {
