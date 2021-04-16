@@ -49,7 +49,6 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 
 			MessageQueue = append(MessageQueue, msg)
 			TxMsgID++
-
 		case <-TxMessageTicker.C:
 			if len(MessageQueue) != 0 {
 				msg := MessageQueue[0] // First element in queue
@@ -68,12 +67,18 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 						}
 					}
 				}
-				if isOnline == confirmedOnline { // Check which elevators that are offline - length of allElevators
+				if isOnline == confirmedOnline || msg.MsgType == ELEVSTATUS { // Check which elevators that are offline - length of allElevators
+					if msg.MsgType == ELEVSTATUS {
+						// we do not need ack on ELEVSTATUS because it's sent continiously
+						// needing ack can result in slowness when having big packet loss
+						netChan.BcastMessage <- msg
+					}
 					MessageQueue = MessageQueue[1:] //Pop message from queue
 					CurrentConfirmations = make([]string, 0)
 				} else {
 					netChan.BcastMessage <- msg
 				}
+
 			}
 			TxMessageTicker.Reset(15 * time.Millisecond)
 		}
@@ -96,11 +101,13 @@ func Reciever(netChan NetworkChannels, orderChan OrderChannels) {
 				}
 				sendConfirmation(rxMessage, netChan)
 			case ELEVSTATUS:
-				isDuplicate := checkForDuplicate(rxMessage)
-				if !isDuplicate {
+				orderChan.RecieveElevUpdate <- rxMessage.ElevatorMsg
+				/*isDuplicate := checkForDuplicate(rxMessage)
+				if !isDuplicate { //Will never be duplicat
 					orderChan.RecieveElevUpdate <- rxMessage.ElevatorMsg
-				}
-				sendConfirmation(rxMessage, netChan)
+				}*/
+				// sendConfirmation(rxMessage, netChan)
+				// Have it for security??
 
 			case CONFIRMATION:
 				ArrayId := strings.Split(rxMessage.ElevatorId, "FROM")
