@@ -11,8 +11,6 @@ import (
 	. "../Common"
 
 	assigner "../Assigner"
-
-
 )
 
 var MessageQueue []Message
@@ -51,7 +49,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 
 			MessageQueue = append(MessageQueue, msg)
 			TxMsgID++
-		
+
 		case <-TxMessageTicker.C:
 			if len(MessageQueue) != 0 {
 				msg := MessageQueue[0] // First element in queue
@@ -81,7 +79,6 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 		}
 	}
 }
-
 
 func Reciever(netChan NetworkChannels, orderChan OrderChannels) {
 	id := GetElevIP()
