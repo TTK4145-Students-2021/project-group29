@@ -73,3 +73,5 @@ func main() {
 
 	select {}
 }
+
+// sudo iptables -A INPUT -p udp --dport 42034 -m owner --pid-owner 4950144 -statistic -mode random - probability 1.0 -j DROP

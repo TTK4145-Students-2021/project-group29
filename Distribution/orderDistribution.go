@@ -4,6 +4,7 @@ package Distribution
 // Functions from Network
 // messagetype, messageid, elevator, order
 import (
+	"fmt"
 	"time"
 
 	"strings"
@@ -20,6 +21,7 @@ var PrevRxMsgIDs map[string]int
 func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 	id := GetElevIP()
 	TxMsgID := 0 // id iterator
+	singleMode := 0
 	TxMessageTicker := time.NewTimer(15 * time.Millisecond)
 	for {
 		select {
@@ -55,30 +57,45 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 				elevMap := assigner.AllElevators
 				isOnline := 0
 				confirmedOnline := 0
-
-				for idElev, elev := range elevMap {
-					if elev.Online {
-						isOnline++
-					}
-					// if idElev in Currencomf
-					for _, idConfirmed := range CurrentConfirmations {
-						if elev.Online && idElev == idConfirmed {
-							confirmedOnline++
-						}
-					}
-				}
-				if isOnline == confirmedOnline || msg.MsgType == ELEVSTATUS { // Check which elevators that are offline - length of allElevators
-					if msg.MsgType == ELEVSTATUS {
-						// we do not need ack on ELEVSTATUS because it's sent continiously
-						// needing ack can result in slowness when having big packet loss
-						netChan.BcastMessage <- msg
+				if singleMode == 20 {
+					fmt.Println("SINGLE!!")
+					msg.OrderMsg.Id = GetElevIP()
+					isDuplicate := checkForDuplicate(msg)
+					if !isDuplicate {
+						orderChan.OrderBackupUpdate <- msg.OrderMsg
+						orderChan.LocalOrder <- msg.OrderMsg
 					}
 					MessageQueue = MessageQueue[1:] //Pop message from queue
 					CurrentConfirmations = make([]string, 0)
+					singleMode = 0
 				} else {
-					netChan.BcastMessage <- msg
+					fmt.Println("NOT!!")
+					for idElev, elev := range elevMap {
+						if elev.Online {
+							isOnline++
+						}
+						// if idElev in Currencomf
+						for _, idConfirmed := range CurrentConfirmations {
+							if elev.Online && idElev == idConfirmed {
+								confirmedOnline++
+							}
+						}
+					}
+					if (isOnline == confirmedOnline || msg.MsgType == ELEVSTATUS) && isOnline > 0 { // Check which elevators that are offline - length of allElevators
+						if msg.MsgType == ELEVSTATUS {
+							// we do not need ack on ELEVSTATUS because it's sent continiously
+							// needing ack can result in slowness when having big packet loss
+							netChan.BcastMessage <- msg
+						}
+						fmt.Println("Deleting from queue")
+						MessageQueue = MessageQueue[1:] //Pop message from queue
+						CurrentConfirmations = make([]string, 0)
+						singleMode = 0
+					} else {
+						netChan.BcastMessage <- msg
+						singleMode++
+					}
 				}
-
 			}
 			TxMessageTicker.Reset(15 * time.Millisecond)
 		}

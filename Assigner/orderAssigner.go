@@ -19,6 +19,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 		select {
 		case buttonPress := <-hwChan.HwButtons:
 			id := "No ID"
+			
 			if buttonPress.Button == hw.BT_Cab {
 				id = GetElevIP()
 			} else {

@@ -89,7 +89,7 @@ func enrollHardware(elev Elevator) {
 }
 
 func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
-
+	// fmt.Println(os.Getpid)
 	// Initializing elevator
 	elev := Elevator{
 		Id:         GetElevIP(),
