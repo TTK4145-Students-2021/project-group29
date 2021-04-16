@@ -98,7 +98,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		State:      IDLE,
 		Online:     true,
 		OrderQueue: [NumFloors][NumButtons]bool{},
-		Obstructed: false,
+		Mobile:     true,
 	}
 	// Check if we have backup of cab orders
 	readFromBackup(orderChan)
@@ -144,7 +144,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				break
 			case newFloor := <-hwChan.HwFloor: //change to elev.Floor := <-hwChan.HwFloor
 				elev.Floor = newFloor //remove this?? So that the code is alike
-				elev.Online = true
+				elev.Mobile = true
 
 				if ShouldStop(elev) {
 					parameters := ClearOrdersParams{Elev: elev}
@@ -161,7 +161,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				break
 			case <-engineFailure.C:
 				fmt.Println("ENGINE FAILURE")
-				elev.Online = false
+				elev.Mobile = false
 				engineFailure.Reset((3 * time.Second))
 			}
 		case DOOROPEN:
@@ -175,27 +175,27 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				}
 				break
 			case <-doorTimeout.C:
-				elev.Obstructed = hw.GetObstruction()
+				obstructed := hw.GetObstruction()
 				elev.Dir = ChooseDirection(elev, rememberDir)
 				//fmt.Printf("%+v\n", elev)
-				if elev.Obstructed {
+				if obstructed {
 					doorTimeout.Reset(3 * time.Second) // Does the door have to be open 3 seconds after not obstructed????
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					numberOfTimeouts++
 					if numberOfTimeouts == 3 {
-						elev.Online = false
+						elev.Mobile = false
 						numberOfTimeouts = 0
 					}
 				} else if elev.Dir == hw.MD_Stop {
 					elev.State = IDLE
-					elev.Online = true
+					elev.Mobile = true
 					//NumElevators--
 					engineFailure.Stop()
 					numberOfTimeouts = 0
 				} else {
 					elev.State = MOVING
-					elev.Online = true
+					elev.Mobile = true
 
 					//NumElevators--
 					engineFailure.Reset((3 * time.Second)) // engineFailure resets whenever an elevator starts moving and has reached a floor.
@@ -208,7 +208,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		enrollHardware(elev)
 		writeToBackup(elev)
 		//Implement again when more than one elevator
-		orderChan.LocalElevUpdate <- elev // Have to implement these more places?
+		orderChan.LocalElevUpdate <- elev
+		orderChan.RecieveElevUpdate <- elev
 		// fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
 
 	}

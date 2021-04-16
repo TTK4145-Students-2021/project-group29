@@ -1,12 +1,14 @@
 package Common
 
 import (
-	"fmt"
 	"os"
 
 	hw "../Driver/elevio"
-	localip "../Network/network/localip"
 	p "../Network/network/peers"
+
+	"fmt"
+
+	localip "../Network/network/localip"
 )
 
 // import "fmt"
@@ -57,7 +59,7 @@ type Elevator struct {
 	State      ElevState
 	Online     bool
 	OrderQueue [NumFloors][NumButtons]bool // Order_queue?
-	Obstructed bool
+	Mobile     bool
 }
 
 type HardwareChannels struct {
