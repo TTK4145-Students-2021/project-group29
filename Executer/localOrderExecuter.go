@@ -36,7 +36,8 @@ func InitElev() {
 	hw.SetFloorIndicator(hw.GetFloor())
 }
 
-func cabOrderBackup(elev Elevator) {
+// fuctions to save and read backup of caborders
+func writeToBackup(elev Elevator) {
 	filename := "cabOrder " + os.Args[1] + ".txt"
 	f, err := os.Create(filename)
 	errors(err)
@@ -46,7 +47,6 @@ func cabOrderBackup(elev Elevator) {
 		caborders = append(caborders, row[NumButtons-1])
 	}
 	cabordersString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(caborders)), " "), "[]")
-	// fmt.Println(cabordersString)
 	_, err = f.WriteString(cabordersString)
 	defer f.Close()
 }
@@ -64,12 +64,10 @@ func readFromBackup(orderChan OrderChannels) {
 		}
 	}
 	id := GetElevIP()
-	time.Sleep(time.Second) // For some reason this happens to early. Is not the peer connected yet?
+	time.Sleep(15 * time.Millisecond) // A small wait such that my elevator is connected as peer
 	for f, order := range caborders {
 		if order {
-			// fmt.Println(f)
 			newOrder := Order{Floor: f, Button: hw.BT_Cab, Id: id}
-			//fmt.Println("Sending order: ", newOrder)
 			orderChan.SendOrder <- newOrder
 		}
 	}
@@ -91,16 +89,6 @@ func enrollHardware(elev Elevator) {
 	hw.SetFloorIndicator(elev.Floor) // Does it harm to set this more times than necessary?
 	hw.SetMotorDirection(elev.Dir)
 	hw.SetDoorOpenLamp(DOOROPEN == elev.State)
-
-	/*if !elev.Online {
-		hw.SetMotorDirection(hw.MD_Stop)
-		for i := 0; i < 5; i++ {
-			hw.SetStopLamp(true)
-			time.Sleep(200 * time.Millisecond)
-			hw.SetStopLamp(false)
-		}
-		hw.SetMotorDirection(elev.Dir)
-	}*/
 }
 
 func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
@@ -115,6 +103,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		OrderQueue: [NumFloors][NumButtons]bool{},
 		Obstructed: false,
 	}
+	// Check if we have backup of cab orders
 	readFromBackup(orderChan)
 
 	// Executing channels
@@ -143,7 +132,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			select {
 			case newOrder := <-orderChan.LocalOrder:
 				fmt.Println("Reciving order: ", newOrder)
-				//fmt.Println("Order recieved of executer")
 				elev.Id = newOrder.Id // Gets local ID from Peers
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
@@ -224,7 +212,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		}
 
 		enrollHardware(elev)
-		cabOrderBackup(elev)
+		writeToBackup(elev)
 		//Implement again when more than one elevator
 		orderChan.LocalElevUpdate <- elev // Have to implement these more places?
 		// fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
