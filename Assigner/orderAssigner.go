@@ -107,7 +107,7 @@ func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) str
 func reassignOrders(offlineElev Elevator, orderChan OrderChannels) {
 	myId := GetElevIP()
 	for id, elev := range AllElevators {
-		if elev.Online && elev.Mobile {
+		if elev.Online {
 			if id == myId {
 				for floor := 0; floor < NumFloors; floor++ {
 					for btn := 0; btn < NumButtons-1; btn++ {
@@ -116,7 +116,6 @@ func reassignOrders(offlineElev Elevator, orderChan OrderChannels) {
 							if !duplicateOrder(hw.ButtonType(btn), floor) {
 								newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
 								orderChan.SendOrder <- newOrder
-								fmt.Println("Sending reassigned order")
 							}
 						}
 					}
@@ -182,7 +181,7 @@ func setAllLights() {
 					continue
 				}
 
-				if elev.OrderQueue[floor][btn] && elev.Online { // make this better
+				if elev.OrderQueue[floor][btn] && elev.Online && elev.Mobile { // make this better
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
 				}
@@ -206,7 +205,7 @@ func duplicateOrder(btn hw.ButtonType, floor int) bool {
 		if btn == hw.BT_Cab && id != ID {
 			continue
 		}
-		if elev.OrderQueue[floor][btn] && elev.Online {
+		if elev.OrderQueue[floor][btn] && elev.Online && elev.Mobile {
 			return true
 		}
 	}
