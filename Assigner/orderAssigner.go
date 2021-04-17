@@ -23,7 +23,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			myId := GetElevIP()
 			myElev := AllElevators[myId]
 			if myElev.Online {
-				fmt.Println("hello2")
+				// fmt.Println("hello2")
 				if buttonPress.Button == hw.BT_Cab {
 					id = GetElevIP()
 				} else {
@@ -51,7 +51,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			} else if updatedElev.Mobile && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- true
 			}*/
-			if !updatedElev.Mobile {
+			if !updatedElev.Mobile {// skjer for mange ganger
 				reassignOrders(updatedElev, orderChan)
 			}
 
@@ -108,7 +108,7 @@ func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) str
 
 }
 
-func reassignOrders(offlineElev Elevator, orderChan OrderChannels) {
+func reassignOrders(offlineElev Elevator, orderChan OrderChannels) { // change name
 	myId := GetElevIP()
 	for id, elev := range AllElevators {
 		if elev.Online {
@@ -120,6 +120,7 @@ func reassignOrders(offlineElev Elevator, orderChan OrderChannels) {
 							if !duplicateOrder(hw.ButtonType(btn), floor) {
 								newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
 								orderChan.SendOrder <- newOrder
+								// allElevators[offlineElev].OrderQueue[floor][btn] = false
 							}
 						}
 					}

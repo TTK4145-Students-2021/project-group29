@@ -70,7 +70,7 @@ func ReadFromBackup(hwChan HardwareChannels) {
 		if order {
 			backupOrder := hw.ButtonEvent{Floor: f, Button: hw.BT_Cab }
 			hwChan.HwButtons <- backupOrder
-			time.Sleep(15 * time.Millisecond)
+			time.Sleep(15 * time.Millisecond) // rekker ikke gjennomføre uten sleep
 			//newOrder := Order{Floor: f, Button: hw.BT_Cab, Id: id}
 			//orderChan.SendOrder <- newOrder
 		}
@@ -127,7 +127,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			rememberDir = elev.Dir
 			select {
 			case newOrder := <-orderChan.LocalOrder:
-				fmt.Println("Reciving order: ", newOrder)
+				// fmt.Println("Reciving order: ", newOrder)
 				elev.Id = newOrder.Id // Gets local ID from Peers
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
@@ -164,8 +164,12 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				break
 			case <-engineFailure.C:
 				fmt.Println("ENGINE FAILURE")
-				elev.Mobile = false
-				engineFailure.Reset((3 * time.Second))
+				if elev.Mobile {
+					elev.Mobile = false
+					orderChan.LocalElevUpdate <- elev
+					orderChan.RecieveElevUpdate <- elev 
+				}
+				engineFailure.Reset((1 * time.Second)) 
 			}
 		case DOOROPEN:
 			select {
@@ -187,8 +191,12 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 					elev.Dir = hw.MD_Stop
 					numberOfTimeouts++
 					if numberOfTimeouts == 3 {
-						elev.Mobile = false
 						numberOfTimeouts = 0
+						if elev.Mobile {
+							elev.Mobile = false
+							orderChan.LocalElevUpdate <- elev
+							orderChan.RecieveElevUpdate <- elev 
+						}
 					}
 				} else if elev.Dir == hw.MD_Stop {
 					elev.State = IDLE
@@ -211,8 +219,13 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		enrollHardware(elev)
 		writeToBackup(elev)
 		//Implement again when more than one elevator
-		orderChan.LocalElevUpdate <- elev
-		orderChan.RecieveElevUpdate <- elev // Denne havner sier til backup at jeg er online. så vi prøver å sende meldinger over nett selv om vi er offline. OK?
+		if elev.Mobile {
+			orderChan.LocalElevUpdate <- elev
+			orderChan.RecieveElevUpdate <- elev 
+		}
+		
+		//orderChan.LocalElevUpdate <- elev
+		//orderChan.RecieveElevUpdate <- elev // Denne havner sier til backup at jeg er online. så vi prøver å sende meldinger over nett selv om vi er offline. OK?
 		// fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
 
 	}
