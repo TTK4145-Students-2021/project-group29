@@ -48,7 +48,11 @@ func writeToBackup(elev Elevator) {
 	defer f.Close()
 }
 
-func readFromBackup(orderChan OrderChannels) {
+ /*type ButtonEvent struct {
+	Floor  int
+	Button ButtonType
+}*/
+func ReadFromBackup(hwChan HardwareChannels) {
 	filename := "cabOrder " + os.Args[1] + ".txt"
 	f, err := ioutil.ReadFile(filename)
 	errors(err)
@@ -60,12 +64,15 @@ func readFromBackup(orderChan OrderChannels) {
 			caborders = append(caborders, result)
 		}
 	}
-	id := GetElevIP()
+	// id := GetElevIP()
 	time.Sleep(15 * time.Millisecond) // A small wait such that my elevator is connected as peer or something with tx message ticker?
 	for f, order := range caborders {
 		if order {
-			newOrder := Order{Floor: f, Button: hw.BT_Cab, Id: id}
-			orderChan.SendOrder <- newOrder
+			backupOrder := hw.ButtonEvent{Floor: f, Button: hw.BT_Cab }
+			hwChan.HwButtons <- backupOrder
+			time.Sleep(15 * time.Millisecond)
+			//newOrder := Order{Floor: f, Button: hw.BT_Cab, Id: id}
+			//orderChan.SendOrder <- newOrder
 		}
 	}
 }
@@ -101,10 +108,6 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		Mobile:     true,
 	}
 	// Check if we have backup of cab orders
-	readFromBackup(orderChan)
-
-	// Executing channels
-	// go checkForObstruction(hwChan.HwObstruction, elev)
 
 	// Timer in Go
 	doorTimeout := time.NewTimer(3 * time.Second)
@@ -209,7 +212,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		writeToBackup(elev)
 		//Implement again when more than one elevator
 		orderChan.LocalElevUpdate <- elev
-		orderChan.RecieveElevUpdate <- elev
+		orderChan.RecieveElevUpdate <- elev // Denne havner sier til backup at jeg er online. så vi prøver å sende meldinger over nett selv om vi er offline. OK?
 		// fmt.Println("Orderqueue from local exe: ", elev.OrderQueue)
 
 	}

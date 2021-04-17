@@ -11,6 +11,8 @@ import (
 	. "../Common"
 
 	assigner "../Assigner"
+
+	"fmt"
 )
 
 var MessageQueue []Message
@@ -21,6 +23,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 	id := GetElevIP()
 	TxMsgID := 0 // id iterator
 	TxMessageTicker := time.NewTimer(15 * time.Millisecond)
+	packageNotSent := 0 // 66
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
@@ -51,10 +54,12 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 			TxMsgID++
 		case <-TxMessageTicker.C:
 			if len(MessageQueue) != 0 {
+				
 				msg := MessageQueue[0] // First element in queue
 				elevMap := assigner.AllElevators
 				isOnline := 0
 				confirmedOnline := 0
+				// fmt.Println(msg)
 
 				for idElev, elev := range elevMap {
 					if elev.Online {
@@ -67,18 +72,31 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 						}
 					}
 				}
-				if isOnline == confirmedOnline || msg.MsgType == ELEVSTATUS { // Check which elevators that are offline - length of allElevators
-					if msg.MsgType == ELEVSTATUS {
-						// we do not need ack on ELEVSTATUS because it's sent continiously
-						// needing ack can result in slowness when having big packet loss
-						netChan.BcastMessage <- msg
-					}
+				if (packageNotSent == 70) { // ca 1 sek. make global variable
+					fmt.Println("Package not sent..")
+
+					msg.OrderMsg.Id = GetElevIP()
+					orderChan.LocalOrder <- msg.OrderMsg
+					orderChan.OrderBackupUpdate <- msg.OrderMsg
+					packageNotSent = 0
 					MessageQueue = MessageQueue[1:] //Pop message from queue
 					CurrentConfirmations = make([]string, 0)
+					// msg = MessageQueue[0] 
 				} else {
-					netChan.BcastMessage <- msg
+					if isOnline == confirmedOnline || msg.MsgType == ELEVSTATUS { // Check which elevators that are offline - length of allElevators
+						if msg.MsgType == ELEVSTATUS {
+							// we do not need ack on ELEVSTATUS because it's sent continiously
+							// needing ack can result in slowness when having big packet loss
+							netChan.BcastMessage <- msg
+						}
+						MessageQueue = MessageQueue[1:] //Pop message from queue
+						CurrentConfirmations = make([]string, 0)
+						packageNotSent = 0
+					} else {
+						netChan.BcastMessage <- msg
+						packageNotSent++
+					}
 				}
-
 			}
 			TxMessageTicker.Reset(15 * time.Millisecond)
 		}

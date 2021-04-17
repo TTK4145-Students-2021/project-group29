@@ -18,10 +18,12 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 	for {
 		select {
 		case buttonPress := <-hwChan.HwButtons:
+			fmt.Println(buttonPress)
 			id := "No ID"
 			myId := GetElevIP()
 			myElev := AllElevators[myId]
 			if myElev.Online {
+				fmt.Println("hello2")
 				if buttonPress.Button == hw.BT_Cab {
 					id = GetElevIP()
 				} else {
@@ -32,8 +34,10 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 					orderChan.SendOrder <- newOrder
 				}
 			} else {
-				newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: id}
+				newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: myId}
+				fmt.Println(newOrder)
 				orderChan.LocalOrder <- newOrder
+				fmt.Println("Going into SINGLE MODE!!!!")
 				// Send directly to executer
 			}
 		case newOrder := <-orderChan.OrderBackupUpdate:
@@ -182,6 +186,10 @@ func setAllLights() {
 				}
 
 				if elev.OrderQueue[floor][btn] && elev.Online && elev.Mobile { // make this better
+					SetLights[id] = true
+					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
+				}
+				if elev.OrderQueue[floor][btn] && !elev.Online && id == ID {
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
 				}

@@ -70,6 +70,7 @@ func main() {
 
 	// Goroutine of runElevator, in executer
 	go executer.RunElevator(hwChan, orderChan)
+	executer.ReadFromBackup(hwChan)
 
 	select {}
 }
