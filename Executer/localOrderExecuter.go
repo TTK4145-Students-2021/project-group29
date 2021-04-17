@@ -48,10 +48,6 @@ func writeToBackup(elev Elevator) {
 	defer f.Close()
 }
 
- /*type ButtonEvent struct {
-	Floor  int
-	Button ButtonType
-}*/
 func ReadFromBackup(hwChan HardwareChannels) {
 	filename := "cabOrder " + os.Args[1] + ".txt"
 	f, err := ioutil.ReadFile(filename)
@@ -70,9 +66,8 @@ func ReadFromBackup(hwChan HardwareChannels) {
 		if order {
 			backupOrder := hw.ButtonEvent{Floor: f, Button: hw.BT_Cab }
 			hwChan.HwButtons <- backupOrder
-			time.Sleep(15 * time.Millisecond) // rekker ikke gjennomføre uten sleep
-			//newOrder := Order{Floor: f, Button: hw.BT_Cab, Id: id}
-			//orderChan.SendOrder <- newOrder
+			time.Sleep(15 * time.Millisecond) 
+			// server rekker ikke gjennomføre uten sleep
 		}
 	}
 }
@@ -95,7 +90,7 @@ func enrollHardware(elev Elevator) {
 	hw.SetDoorOpenLamp(DOOROPEN == elev.State)
 }
 
-func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
+func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkChannels) {
 
 	// Initializing elevator
 	elev := Elevator{
@@ -103,7 +98,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		Floor:      hw.GetFloor(),
 		Dir:        hw.MD_Stop,
 		State:      IDLE,
-		Online:     true,
+		Online:     false,
 		OrderQueue: [NumFloors][NumButtons]bool{},
 		Mobile:     true,
 	}
@@ -122,10 +117,14 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 	//var recentEngineFailure = false
 
 	for {
+		//elev.Online = <- netChan.IsOnline 
 		switch elev.State {
 		case IDLE:
 			rememberDir = elev.Dir
 			select {
+			case isOnline := <- netChan.IsOnline:
+				elev.Online = isOnline
+				fmt.Println(elev.Online)
 			case newOrder := <-orderChan.LocalOrder:
 				// fmt.Println("Reciving order: ", newOrder)
 				elev.Id = newOrder.Id // Gets local ID from Peers
@@ -142,6 +141,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 			}
 		case MOVING:
 			select {
+			case isOnline := <- netChan.IsOnline:
+				elev.Online = isOnline
 			case newOrder := <-orderChan.LocalOrder:
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				break
@@ -166,13 +167,14 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 				fmt.Println("ENGINE FAILURE")
 				if elev.Mobile {
 					elev.Mobile = false
-					orderChan.LocalElevUpdate <- elev
-					orderChan.RecieveElevUpdate <- elev 
+					netChan.InMobileElev <- elev
 				}
 				engineFailure.Reset((1 * time.Second)) 
 			}
 		case DOOROPEN:
 			select {
+			case isOnline := <- netChan.IsOnline:
+				elev.Online = isOnline
 			case newOrder := <-orderChan.LocalOrder:
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
@@ -194,8 +196,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 						numberOfTimeouts = 0
 						if elev.Mobile {
 							elev.Mobile = false
-							orderChan.LocalElevUpdate <- elev
-							orderChan.RecieveElevUpdate <- elev 
+							netChan.InMobileElev <- elev
 						}
 					}
 				} else if elev.Dir == hw.MD_Stop {
@@ -219,10 +220,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels) {
 		enrollHardware(elev)
 		writeToBackup(elev)
 		//Implement again when more than one elevator
-		if elev.Mobile {
-			orderChan.LocalElevUpdate <- elev
-			orderChan.RecieveElevUpdate <- elev 
-		}
+		orderChan.LocalElevUpdate <- elev
+		orderChan.RecieveElevUpdate <- elev 
 		
 		//orderChan.LocalElevUpdate <- elev
 		//orderChan.RecieveElevUpdate <- elev // Denne havner sier til backup at jeg er online. så vi prøver å sende meldinger over nett selv om vi er offline. OK?

@@ -18,7 +18,6 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 	for {
 		select {
 		case buttonPress := <-hwChan.HwButtons:
-			fmt.Println(buttonPress)
 			id := "No ID"
 			myId := GetElevIP()
 			myElev := AllElevators[myId]
@@ -51,9 +50,11 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			} else if updatedElev.Mobile && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- true
 			}*/
-			if !updatedElev.Mobile {// skjer for mange ganger
-				reassignOrders(updatedElev, orderChan)
-			}
+		case myElev := <- netChan.InMobileElev:
+			fmt.Println("Reassigning inmobile elev")
+			AllElevators[myElev.Id] = myElev
+			setAllLights()
+			reassignOrders(myElev, orderChan) // assume that it is not offline
 
 		case peer := <-netChan.PeerUpdateCh:
 			fmt.Printf("Peer update:\n")
@@ -64,7 +65,6 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 				if elev, foundPeer := AllElevators[peer.New]; foundPeer { // If elevator is found again, going online
 					elev.Online = true
 					AllElevators[peer.New] = elev
-
 				} else { // If elevator is new, needs to be created
 					elev := Elevator{
 						Id:         peer.New,
@@ -77,12 +77,17 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 					}
 					AllElevators[peer.New] = elev
 				}
+				if peer.New == GetElevIP() {
+					netChan.IsOnline <- true
+					fmt.Println("Sending true")
+				}
 				NumElevators++
 			}
 			if len(peer.Lost) > 0 {
 				for _, lostPeer := range peer.Lost { // If elevator is lost, going offline
 					elev := AllElevators[lostPeer]
 					elev.Online = false
+					netChan.IsOnline <- false
 					AllElevators[lostPeer] = elev
 					NumElevators--
 					reassignOrders(elev, orderChan)
@@ -110,18 +115,18 @@ func costFunction(allElev map[string]Elevator, btn hw.ButtonType, floor int) str
 
 func reassignOrders(offlineElev Elevator, orderChan OrderChannels) { // change name
 	myId := GetElevIP()
+	//fmt.Println(AllElevators)
 	for id, elev := range AllElevators {
-		if elev.Online {
-			if id == myId {
-				for floor := 0; floor < NumFloors; floor++ {
-					for btn := 0; btn < NumButtons-1; btn++ {
-						if offlineElev.OrderQueue[floor][btn] {
-							id := costFunction(AllElevators, hw.ButtonType(btn), floor)
-							if !duplicateOrder(hw.ButtonType(btn), floor) {
-								newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
-								orderChan.SendOrder <- newOrder
-								// allElevators[offlineElev].OrderQueue[floor][btn] = false
-							}
+		if elev.Online && id == myId {
+			for floor := 0; floor < NumFloors; floor++ {
+				for btn := 0; btn < NumButtons-1; btn++ {
+					if offlineElev.OrderQueue[floor][btn] {
+						id := costFunction(AllElevators, hw.ButtonType(btn), floor)
+						if !duplicateOrder(hw.ButtonType(btn), floor) {
+							newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
+							fmt.Println("Sending new order to channel")
+							orderChan.SendOrder <- newOrder
+							// allElevators[offlineElev].OrderQueue[floor][btn] = false
 						}
 					}
 				}
@@ -194,6 +199,10 @@ func setAllLights() {
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
 				}
+				if elev.OrderQueue[floor][btn] && !elev.Mobile && btn == hw.BT_Cab {
+					SetLights[id] = true
+					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
+				}
 			}
 			lightsOff = true
 			for _, val := range SetLights {
@@ -215,6 +224,7 @@ func duplicateOrder(btn hw.ButtonType, floor int) bool {
 			continue
 		}
 		if elev.OrderQueue[floor][btn] && elev.Online && elev.Mobile {
+			fmt.Println("true")
 			return true
 		}
 	}

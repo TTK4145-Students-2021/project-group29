@@ -49,6 +49,8 @@ func main() {
 		//Between OrderDistributor and Network
 		BcastMessage:   make(chan Message),
 		RecieveMessage: make(chan Message),
+		IsOnline: 	  	make(chan bool),
+		InMobileElev:	make(chan Elevator),
 	}
 	// Goroutines of Hardware
 	go hw.PollButtons(hwChan.HwButtons)
@@ -69,7 +71,7 @@ func main() {
 	go distributer.Transmitter(netChan, orderChan)
 
 	// Goroutine of runElevator, in executer
-	go executer.RunElevator(hwChan, orderChan)
+	go executer.RunElevator(hwChan, orderChan, netChan)
 	executer.ReadFromBackup(hwChan)
 
 	select {}

@@ -85,21 +85,23 @@ type Message struct {
 }
 
 type NetworkChannels struct {
-	PeerUpdateCh   chan p.PeerUpdate
-	PeerTxEnable   chan bool
-	BcastMessage   chan Message
-	RecieveMessage chan Message
+	PeerUpdateCh  	chan p.PeerUpdate
+	PeerTxEnable   	chan bool
+	BcastMessage   	chan Message
+	RecieveMessage 	chan Message
+	IsOnline 	   	chan bool
+	InMobileElev		chan Elevator
 }
 
 type OrderChannels struct {
 	//From assigner to distributer
-	SendOrder chan Order
+	SendOrder 			chan Order
 	//From distributer to assigner
-	OrderBackupUpdate chan Order
-	RecieveElevUpdate chan Elevator
+	OrderBackupUpdate  	chan Order
+	RecieveElevUpdate 	chan Elevator
 	//From distributor to executer
-	LocalOrder chan Order
+	LocalOrder 			chan Order
 	//From executer to distributor
-	LocalElevUpdate chan Elevator
+	LocalElevUpdate 	chan Elevator
 	//ReassignOrders  chan string
 }
