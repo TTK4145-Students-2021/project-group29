@@ -71,7 +71,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 						}
 					}
 				}
-				if packageNotSent == 300 { // ca 2 sek. make global variable
+				if packageNotSent == 100 { // ca 2 sek. make global variable
 					fmt.Println("Package not sent..")
 
 					msg.OrderMsg.Id = GetElevIP()

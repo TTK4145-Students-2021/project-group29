@@ -80,6 +80,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 					netChan.IsOnline <- true
 					fmt.Println("Sending true")
 				}
+				orderChan.LocalElevUpdate <- AllElevators[GetElevIP()] // send update on myself such that newly connected elevators know where I am
 				NumElevators++
 			}
 			if len(peer.Lost) > 0 {
