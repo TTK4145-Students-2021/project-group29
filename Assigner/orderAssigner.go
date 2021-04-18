@@ -21,7 +21,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			id := "No ID"
 			myId := GetElevIP()
 			myElev := AllElevators[myId]
-			if myElev.Online {
+			if myElev.Online && NumElevators > 1 { // If no pwwer (not ourself) is detected (packet loss =1) or If one we only have ourself
 				// fmt.Println("hello2")
 				if buttonPress.Button == hw.BT_Cab {
 					id = GetElevIP()
@@ -50,7 +50,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			} else if updatedElev.Mobile && updatedElev.Id == GetElevIP() {
 				netChan.PeerTxEnable <- true
 			}*/
-		case myElev := <- netChan.InMobileElev:
+		case myElev := <-netChan.InMobileElev:
 			fmt.Println("Reassigning inmobile elev")
 			AllElevators[myElev.Id] = myElev
 			setAllLights()
@@ -87,7 +87,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 				for _, lostPeer := range peer.Lost { // If elevator is lost, going offline
 					elev := AllElevators[lostPeer]
 					elev.Online = false
-					netChan.IsOnline <- false
+					// netChan.IsOnline <- false Her sier vi at vi er ofline om noen andre kobler av! Men vi er alltid. Vi mister ikke vår egen peer hvis vi mister nettet
 					AllElevators[lostPeer] = elev
 					NumElevators--
 					reassignOrders(elev, orderChan)
@@ -157,7 +157,7 @@ func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
 		}
 		break
 	case MOVING:
-		duration += TravelTime / 2 //Define travel time later
+		duration += TravelTime / 2
 		e.Floor += int(e.Dir)
 		break
 	case DOOROPEN:
