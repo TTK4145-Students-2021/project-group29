@@ -23,7 +23,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 	id := GetElevIP()
 	TxMsgID := 0 // id iterator
 	TxMessageTicker := time.NewTimer(15 * time.Millisecond)
-	packageNotSent := 0 // 66
+	packageNotSent := 0 // it is reassigned if one secound ish has gone
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
@@ -54,7 +54,6 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 			TxMsgID++
 		case <-TxMessageTicker.C:
 			if len(MessageQueue) != 0 {
-				
 				msg := MessageQueue[0] // First element in queue
 				elevMap := assigner.AllElevators
 				isOnline := 0
@@ -72,7 +71,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 						}
 					}
 				}
-				if (packageNotSent == 70) { // ca 1 sek. make global variable
+				if packageNotSent == 150 { // ca 2 sek. make global variable
 					fmt.Println("Package not sent..")
 
 					msg.OrderMsg.Id = GetElevIP()
@@ -81,9 +80,10 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 					packageNotSent = 0
 					MessageQueue = MessageQueue[1:] //Pop message from queue
 					CurrentConfirmations = make([]string, 0)
-					// msg = MessageQueue[0] 
+					// msg = MessageQueue[0]
 				} else {
 					if isOnline == confirmedOnline || msg.MsgType == ELEVSTATUS { // Check which elevators that are offline - length of allElevators
+						//fmt.Println(isOnline)
 						if msg.MsgType == ELEVSTATUS {
 							// we do not need ack on ELEVSTATUS because it's sent continiously
 							// needing ack can result in slowness when having big packet loss
