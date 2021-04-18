@@ -80,7 +80,6 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 					packageNotSent = 0
 					MessageQueue = MessageQueue[1:] //Pop message from queue
 					CurrentConfirmations = make([]string, 0)
-					// msg = MessageQueue[0]
 				} else {
 					if isOnline == confirmedOnline || msg.MsgType == ELEVSTATUS { // Check which elevators that are offline - length of allElevators
 						//fmt.Println(isOnline)
@@ -120,12 +119,6 @@ func Reciever(netChan NetworkChannels, orderChan OrderChannels) {
 				sendConfirmation(rxMessage, netChan)
 			case ELEVSTATUS:
 				orderChan.RecieveElevUpdate <- rxMessage.ElevatorMsg
-				/*isDuplicate := checkForDuplicate(rxMessage)
-				if !isDuplicate { //Will never be duplicat
-					orderChan.RecieveElevUpdate <- rxMessage.ElevatorMsg
-				}*/
-				// sendConfirmation(rxMessage, netChan)
-				// Have it for security??
 
 			case CONFIRMATION:
 				ArrayId := strings.Split(rxMessage.ElevatorId, "FROM")

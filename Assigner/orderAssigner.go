@@ -36,7 +36,6 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 				fmt.Println(newOrder)
 				orderChan.LocalOrder <- newOrder
 				fmt.Println("Going into SINGLE MODE!!!!")
-				// Send directly to executer
 			}
 		case newOrder := <-orderChan.OrderBackupUpdate:
 			OrderBackup[newOrder.Id] = append(OrderBackup[newOrder.Id], newOrder)
@@ -44,11 +43,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevators[updatedElev.Id] = updatedElev
 			setAllLights()
-			/*if !updatedElev.Mobile && updatedElev.Id == GetElevIP() {
-				netChan.PeerTxEnable <- false
-			} else if updatedElev.Mobile && updatedElev.Id == GetElevIP() {
-				netChan.PeerTxEnable <- true
-			}*/
+
 		case myElev := <-netChan.InMobileElev:
 			fmt.Println("Reassigning inmobile elev")
 			AllElevators[myElev.Id] = myElev
@@ -90,7 +85,6 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 					if lostPeer == GetElevIP() {
 						netChan.IsOnline <- false
 					}
-					// netChan.IsOnline <- false Her sier vi at vi er ofline om noen andre kobler av! Men vi er alltid. Vi mister ikke vår egen peer hvis vi mister nettet
 					AllElevators[lostPeer] = elev
 					NumElevators--
 					reassignOrders(elev, orderChan)
@@ -129,7 +123,6 @@ func reassignOrders(offlineElev Elevator, orderChan OrderChannels) { // change n
 								newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
 								fmt.Println("Sending new order to channel")
 								orderChan.SendOrder <- newOrder
-								// allElevators[offlineElev].OrderQueue[floor][btn] = false
 							}
 						}
 					}
