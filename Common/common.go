@@ -1,69 +1,56 @@
 package Common
 
 import (
-	"fmt"
 	"os"
-
+	"fmt"
 	hw "../Driver/elevio"
-	localip "../Network/network/localip"
 	p "../Network/network/peers"
+	localip "../Network/network/localip"
 )
 
-// import "fmt"
-
-func GetElevIP() string {
-	// Adds elevator-ID (localIP + process ID)
-	localIP, err := localip.LocalIP()
-	if err != nil {
-		fmt.Println(err)
-		localIP = "DISCONNECTED"
-	}
-	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
-	return id
-}
+var NumElevs = 0
 
 const (
-	NumFloors    = 4
-	NumButtons   = 3
-	TravelTime   = 2500
-	DoorOpenTime = 3000
+	NumFloors    		= 4
+	NumButtons   		= 3
+	TravelTime   		= 2500
+	DoorOpenTime 		= 3000
+	LostPackageCounter	= 100
 )
 
-var NumElevators = 0
-
 type ClearOrdersParams struct {
-	Elev    Elevator
-	IfEqual func(hw.ButtonType, int)
+	Elev    	Elevator
+	IfEqual 	func(hw.ButtonType, int)
 }
 
 type Order struct {
-	Floor  int
-	Button hw.ButtonType
-	Id     string
+	Floor  		int
+	Button 		hw.ButtonType
+	Id     		string
 }
 
-type ElevState int
+type ElevatorState int
 
 const (
-	IDLE ElevState = iota
+	IDLE ElevatorState = iota
 	MOVING
 	DOOROPEN
 )
 
 type Elevator struct {
-	Id         string
-	Floor      int
-	Dir        hw.MotorDirection //Both direction and elevator behaviour in this variable?
-	State      ElevState
-	Online     bool
-	OrderQueue [NumFloors][NumButtons]bool // Order_queue?
-	Obstructed bool
+	Id         			string
+	Floor      			int
+	Dir        			hw.MotorDirection 
+	State  			    ElevatorState
+	Online     			bool
+	OrderQueue 			[NumFloors][NumButtons]bool 
+	Mobile     			bool
 }
 
 type HardwareChannels struct {
-	HwButtons     chan hw.ButtonEvent
-	HwFloor       chan int
-	HwObstruction chan bool
+	HwButtons     		chan hw.ButtonEvent
+	HwFloor       		chan int
+	HwObstruction 		chan bool
 }
 
 type MessageType int
@@ -75,29 +62,35 @@ const (
 )
 
 type Message struct {
-	OrderMsg    Order
-	ElevatorMsg Elevator
-	MsgType     MessageType
-	MessageId   int
-	ElevatorId  string
+	OrderMsg    		Order
+	ElevMsg 			Elevator
+	MsgType     		MessageType
+	MsgId   			int
+	ElevId  			string
 }
 
 type NetworkChannels struct {
-	PeerUpdateCh   chan p.PeerUpdate
-	PeerTxEnable   chan bool
-	BcastMessage   chan Message
-	RecieveMessage chan Message
+	PeerUpdateCh  		chan p.PeerUpdate
+	PeerTxEnable   		chan bool
+	BcastMsg   			chan Message
+	RecieveMsg 			chan Message
+	IsOnline 	   		chan bool
+	InmobileElev		chan Elevator
 }
 
 type OrderChannels struct {
-	//From assigner to distributer
-	SendOrder chan Order
-	//From distributer to assigner
-	OrderBackupUpdate chan Order
-	RecieveElevUpdate chan Elevator
-	//From distributor to executer
-	LocalOrder chan Order
-	//From executer to distributor
-	LocalElevUpdate chan Elevator
-	//ReassignOrders  chan string
+	SendOrder 			chan Order
+	RecieveElevUpdate 	chan Elevator
+	LocalOrder 			chan Order
+	LocalElevUpdate 	chan Elevator
+}
+
+func GetElevIP() string {
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		fmt.Println(err)
+		localIP = "DISCONNECTED"
+	}
+	id := fmt.Sprintf("%s-%d", localIP, os.Getpid())
+	return id
 }
