@@ -27,7 +27,7 @@ func writeToBackup(elev Elevator) {
 	defer f.Close()
 }
 
-func ReadFromBackup(hwChan HardwareChannels) {
+func ReadFromBackup(hwChan HardwareChannels/*orderChan OrderChannels*/) {
 	filename := "cabOrder " + os.Args[1] + ".txt"
 	f, err := ioutil.ReadFile(filename)
 	errors(err)
@@ -39,12 +39,12 @@ func ReadFromBackup(hwChan HardwareChannels) {
 			caborders = append(caborders, result)
 		}
 	}
-	time.Sleep(15 * time.Millisecond) // Small sleep, because of delay in server 
+	time.Sleep(30 * time.Millisecond) // Small sleep, because of delay in server 
 	for f, order := range caborders {
 		if order {
 			backupOrder := hw.ButtonEvent{Floor: f, Button: hw.BT_Cab }
 			hwChan.HwButtons <- backupOrder
-			time.Sleep(15 * time.Millisecond) // Small sleep, because of delay in server
+			time.Sleep(30 * time.Millisecond) // Small sleep, because of delay in server
 		}
 	}
 }
