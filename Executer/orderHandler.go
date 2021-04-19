@@ -1,9 +1,62 @@
 package Executer
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 	. "../Common"
 	hw "../Driver/elevio"
 )
+
+// Functions to save and read backup of caborders
+
+func writeToBackup(elev Elevator) {
+	filename := "cabOrder " + os.Args[1] + ".txt"
+	f, err := os.Create(filename)
+	errors(err)
+
+	caborders := make([]bool, 0)
+	for _, row := range elev.OrderQueue {
+		caborders = append(caborders, row[NumButtons-1])
+	}
+	cabordersString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(caborders)), " "), "[]")
+	_, err = f.WriteString(cabordersString)
+	defer f.Close()
+}
+
+func ReadFromBackup(hwChan HardwareChannels) {
+	filename := "cabOrder " + os.Args[1] + ".txt"
+	f, err := ioutil.ReadFile(filename)
+	errors(err)
+	caborders := make([]bool, 0)
+	if err == nil {
+		s := strings.Split(string(f), " ")
+		for _, item := range s {
+			result, _ := strconv.ParseBool(item)
+			caborders = append(caborders, result)
+		}
+	}
+	time.Sleep(15 * time.Millisecond) // Small sleep, because of delay in server 
+	for f, order := range caborders {
+		if order {
+			backupOrder := hw.ButtonEvent{Floor: f, Button: hw.BT_Cab }
+			hwChan.HwButtons <- backupOrder
+			time.Sleep(15 * time.Millisecond) // Small sleep, because of delay in server
+		}
+	}
+}
+
+func errors(err error) {
+	if err != nil {
+		fmt.Println(err)
+	}
+	return
+}
+
+// Functions to handle logic of single elevator executer
 
 func ordersAbove(elev Elevator) bool {
 	for floor := elev.Floor + 1; floor < NumFloors; floor++ {
@@ -77,33 +130,31 @@ func ClearOrdersAtCurrentFloor(params ClearOrdersParams) Elevator {
 	haveFunction := !(params.IfEqual == nil)
 	switch params.Elev.Dir {
 	case hw.MD_Up:
-		if haveFunction { // check ifRequest
+		if haveFunction { 
 			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
 		}
 		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
 		if !ordersAbove(params.Elev) {
-			if haveFunction { // check ifRequest
+			if haveFunction { 
 				params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
 			}
 			params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
 		}
 		break
-
 	case hw.MD_Down:
-		if haveFunction { // check ifRequest
+		if haveFunction { 
 			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
 		}
 		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
 		if !ordersBelow(params.Elev) {
-			if haveFunction { // check ifRequest
+			if haveFunction { 
 				params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
 			}
 			params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
 		}
 		break
-
 	case hw.MD_Stop:
-		if haveFunction { // check ifRequest
+		if haveFunction { 
 			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
 			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
 		}
@@ -112,7 +163,7 @@ func ClearOrdersAtCurrentFloor(params ClearOrdersParams) Elevator {
 		break
 
 	default:
-		if haveFunction { // check ifRequest
+		if haveFunction { 
 			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)
 			params.IfEqual(hw.BT_HallDown, params.Elev.Floor)
 		}
@@ -120,6 +171,5 @@ func ClearOrdersAtCurrentFloor(params ClearOrdersParams) Elevator {
 		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
 		break
 	}
-
 	return params.Elev
 }
