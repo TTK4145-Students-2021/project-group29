@@ -6,7 +6,7 @@ The main task to this module is to run the elevator based on the local order que
 The OrderHandler consists of functions that decides the direction of the elevator and logic to clear orders at a floor. It also takes care of always writing a caborder-backup to file. This is necessary if the software crashes, when the elevator still has cab-orders that has not been served.
 
 ## OrderExecuter
-The orderExcecuter initializes the hardware when the program is started and clears all lights. Further, it contains logic for the elevators actions in the different states that is listed below. It also includes timers to check if the elevator is obstructed or experiences engine failure. 
+The OrderExcecuter initializes the hardware when the program is started and clears all lights. Further, it contains logic for the elevators actions in the different states that is listed below. It also includes timers to check if the elevator is obstructed or experiences engine failure. 
 
 
 ## Struct and enum used in Executer-module
