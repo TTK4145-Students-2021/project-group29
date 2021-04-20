@@ -1,12 +1,5 @@
 # Elevator Project
 
-Developers:
-```
-Guro D Veglo          gurodv@stud.ntnu.no
-Nina V Nyegaarden     ninavn@stud.ntnu.no
-Helene T Lønvik       helenetl@stud.ntnu.no
-```
-
  ## Problem/Project description
 
 This repository creates software for controlling `n` elevators working in parallel across `m` floors. There were some requirements that had to be fulfilled in order to obtain a logic elevator system:
