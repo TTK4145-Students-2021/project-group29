@@ -9,7 +9,7 @@ Helene T Lønvik       helenetl@stud.ntnu.no
 
  ## Problem/Project description
 
-This repostory creates software for controlling `n` elevators working in parallel across `m` floors. There were some requirements that had to be fulfilled in order to acquire a logic elevator system:
+This repository creates software for controlling `n` elevators working in parallel across `m` floors. There were some requirements that had to be fulfilled in order to obtain a logic elevator system:
 
 - **No order are lost**
 
@@ -17,14 +17,14 @@ Once the light on a hall call button is turned on, an elevator should arrive at 
 
 - **Multiple elevators should be more efficient than one**
 
-Orders should be distributed across the elevators in a reasonable way, with a free choice of cost function.
+Orders should be distributed across the elevators in a reasonable way, with free choice of cost function.
 
 - **An individual elevator should behave sensibily and efficiently**
 
-Elevator should only stop where it has an order. The hall call upward and call downward buttons should behave differently. 
+The elevator should only stop where it has an order. The hall call upward and call downward buttons should behave differently. 
 
 - **The lights and buttons should function as expected**
-Hall call buttons should summon an elevator, where the hall buttons should show the same thing at all workspaces. The cab button light should not be shared between elevators. The "door open" lamp is used as an subsistute for an actual door, while the obstruction switch should substitute the door obstruction sensor inside the elevator.
+Hall call buttons should summon an elevator, where the hall buttons should show the same thing at all workspaces. The cab button light should not be shared between elevators. The "door open" lamp is used as a substitute for an actual door, while the obstruction switch should substitute the door obstruction sensor inside the elevator.
 
 There were some permitted assumptions that would always be true during testing:
 1. At least one elevator is always working normally
@@ -45,7 +45,7 @@ UDP, User Datagram Protocol, is the communications protocol being used in this s
 
 
 ### System
-Our elevator-system consists of three implemented main modules: **Assigner**, **Distributer** and **Executer**. The system also includes the handed-out modules **Network** and **Driver**, that is responsible for respectively the communication between the servers and controlling the elevator hardware.  
+Our elevator-system consists of three implemented main modules: **Assigner**, **Distributer** and **Executer**. The system also includes the handed-out modules **Network** and **Driver**, that is responsible for respectively the communication between the peers and controlling the elevator hardware.  
 
 **Assigner** 
 
@@ -78,10 +78,10 @@ Main is responsible for initializing the elevators, making the necessary channel
 **Imported libraries**
 
 We have imported several Golang-packages in our implementation of the elevator system. These are:
-- fmt
-- os
-- strings
-- time
-- io/ioutil
-- strconv
+- fmt: Implements formatted I/O
+- io/ioutil: Implements I/O utility functions. Used in caborder-backup solution in Executer.
+- os: Provides interface to operating system functionality
+- strconv: Used to convert types like bool and string. Used in caborder-backup solution in Executer.
+- strings: Functions to manipulate UTF-8.
+- time: Measuring and displaying time. Timers used in Distributer and Executer. 
 

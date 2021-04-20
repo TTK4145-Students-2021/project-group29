@@ -26,7 +26,7 @@ func writeToBackup(elev Elevator) {
 	defer f.Close()
 }
 
-func ReadFromBackup(hwChan HardwareChannels /*orderChan OrderChannels*/) {
+func ReadFromBackup(hwChan HardwareChannels) {
 	filename := "cabOrder " + os.Args[1] + ".txt"
 	f, err := ioutil.ReadFile(filename)
 	errors(err)
@@ -158,7 +158,6 @@ func ClearOrdersAtCurrentFloor(params ClearOrdersParams) Elevator {
 		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallUp] = false
 		params.Elev.OrderQueue[params.Elev.Floor][hw.BT_HallDown] = false
 		break
-
 	default:
 		if haveFunction {
 			params.IfEqual(hw.BT_HallUp, params.Elev.Floor)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+
 	. "../Common"
 	hw "../Driver/elevio"
 )
@@ -13,7 +14,8 @@ func InitElev() {
 	clearAllLights()
 
 	hw.SetMotorDirection(hw.MD_Down) // Moving down to the closest floor if elevator is in-between floors
-	for hw.GetFloor() == -1 {}
+	for hw.GetFloor() == -1 {
+	}
 	hw.SetMotorDirection(hw.MD_Stop)
 	hw.SetFloorIndicator(hw.GetFloor())
 }
@@ -24,12 +26,12 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 		Id:         GetElevIP(),
 		Floor:      hw.GetFloor(),
 		Dir:        hw.MD_Stop,
-		State:  IDLE,
+		State:      IDLE,
 		Online:     false,
 		OrderQueue: [NUMFLOORS][NUMBUTTONS]bool{},
 		Mobile:     true,
 	}
-	
+
 	doorTimeout := time.NewTimer(DOOROPENTIME * time.Millisecond)
 	doorTimeout.Stop()
 
@@ -44,10 +46,10 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 		case IDLE:
 			rememberDir = elev.Dir
 			select {
-			case isOnline := <- netChan.IsOnline:
+			case isOnline := <-netChan.IsOnline:
 				elev.Online = isOnline
 			case newOrder := <-orderChan.LocalOrder:
-				elev.Id = newOrder.Id 
+				elev.Id = newOrder.Id
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
 					doorTimeout.Reset(DOOROPENTIME * time.Millisecond)
@@ -61,7 +63,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 			}
 		case MOVING:
 			select {
-			case isOnline := <- netChan.IsOnline:
+			case isOnline := <-netChan.IsOnline:
 				elev.Online = isOnline
 			case newOrder := <-orderChan.LocalOrder:
 				elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
@@ -87,11 +89,11 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 					elev.Mobile = false
 					netChan.InmobileElev <- elev
 				}
-				engineFailure.Reset((1 * time.Second)) 
+				engineFailure.Reset((1 * time.Second))
 			}
 		case DOOROPEN:
 			select {
-			case isOnline := <- netChan.IsOnline:
+			case isOnline := <-netChan.IsOnline:
 				elev.Online = isOnline
 			case newOrder := <-orderChan.LocalOrder:
 				if elev.Floor == newOrder.Floor {
@@ -106,7 +108,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 				elev.Dir = ChooseDirection(elev, rememberDir)
 				if obstructed {
 					fmt.Println("OBSTRUCTED")
-					doorTimeout.Reset(DOOROPENTIME * time.Millisecond) 
+					doorTimeout.Reset(DOOROPENTIME * time.Millisecond)
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					obstructionCounter++
@@ -125,7 +127,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 				} else {
 					elev.State = MOVING
 					elev.Mobile = true
-					engineFailure.Reset((3 * time.Second)) 
+					engineFailure.Reset((3 * time.Second))
 					obstructionCounter = 0
 				}
 				break
@@ -135,7 +137,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 		writeToBackup(elev)
 
 		orderChan.LocalElevUpdate <- elev
-		orderChan.RecieveElevUpdate <- elev 
+		orderChan.RecieveElevUpdate <- elev
 	}
 }
 
@@ -149,7 +151,7 @@ func clearAllLights() {
 }
 
 func enrollHardware(elev Elevator) {
-	hw.SetFloorIndicator(elev.Floor) 
+	hw.SetFloorIndicator(elev.Floor)
 	hw.SetMotorDirection(elev.Dir)
 	hw.SetDoorOpenLamp(DOOROPEN == elev.State)
 }

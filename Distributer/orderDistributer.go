@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	. "../Common"
+
 	assigner "../Assigner"
+	. "../Common"
 )
 
 var MsgQueue []Message
@@ -14,30 +15,30 @@ var PrevRxMsgIds map[string]int
 var myId = GetElevIP()
 
 func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
-	TxMsgID := 0 
+	TxMsgID := 0
 	TxMessageTicker := time.NewTimer(15 * time.Millisecond)
-	packageNotSent := 0 	// Counter that checks if package has not been confirmed by all peers
+	packageNotSent := 0 // Counter that checks if package has not been confirmed by all peers
 	for {
 		select {
 		case newOrder := <-orderChan.SendOrder:
 			elevMsg := new(Elevator)
 			txMsg := Message{
-				OrderMsg:       newOrder,
-				ElevMsg:	    *elevMsg,
-				MsgType:    	ORDER,
-				MsgId:   		TxMsgID,
-				ElevId:			myId,
+				OrderMsg: newOrder,
+				ElevMsg:  *elevMsg,
+				MsgType:  ORDER,
+				MsgId:    TxMsgID,
+				ElevId:   myId,
 			}
 			MsgQueue = append(MsgQueue, txMsg)
 			TxMsgID++
 		case localElevUpdate := <-orderChan.LocalElevUpdate:
 			orderMsg := new(Order)
 			txMsg := Message{
-				OrderMsg:    	*orderMsg,
-				ElevMsg: 		localElevUpdate,
-				MsgType:     	ELEVSTATUS,
-				MsgId:   		TxMsgID,
-				ElevId:  		myId,
+				OrderMsg: *orderMsg,
+				ElevMsg:  localElevUpdate,
+				MsgType:  ELEVSTATUS,
+				MsgId:    TxMsgID,
+				ElevId:   myId,
 			}
 			MsgQueue = append(MsgQueue, txMsg)
 			TxMsgID++
@@ -46,7 +47,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 				txMsg := MsgQueue[0]
 				allElevs := assigner.AllElevs
 				onlineElevs := 0
-				elevsConfirmed := 0	
+				elevsConfirmed := 0
 				for id, elev := range allElevs {
 					if elev.Online {
 						onlineElevs++
@@ -63,9 +64,9 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 					orderChan.LocalOrder <- txMsg.OrderMsg // Sending order to elevator that has recieved the button press
 					MsgQueue = MsgQueue[1:]
 					packageNotSent = 0
-					currentConf = make([]string, 0) // Emptying array currentConf
+					currentConf = make([]string, 0)
 				} else {
-					if onlineElevs == elevsConfirmed || txMsg.MsgType == ELEVSTATUS { // Check if the elevators that are online have confirmed
+					if onlineElevs == elevsConfirmed || txMsg.MsgType == ELEVSTATUS {
 						if txMsg.MsgType == ELEVSTATUS { // We do not need ack on elevator updates
 							netChan.BcastMsg <- txMsg
 						}
@@ -91,7 +92,7 @@ func Reciever(netChan NetworkChannels, orderChan OrderChannels) {
 			case ORDER:
 				isDuplicate := checkForDuplicate(rxMsg)
 				if !isDuplicate && rxMsg.OrderMsg.Id == myId {
-						orderChan.LocalOrder <- rxMsg.OrderMsg
+					orderChan.LocalOrder <- rxMsg.OrderMsg
 				}
 				sendConfirmation(rxMsg, netChan)
 			case ELEVSTATUS:
@@ -100,7 +101,7 @@ func Reciever(netChan NetworkChannels, orderChan OrderChannels) {
 				ArrayId := strings.Split(rxMsg.ElevId, "FROM") // The recieved message consists of the id of the peer that sends and gets the confirmation
 				toId := ArrayId[0]
 				fromId := ArrayId[1]
-				duplicateConfirm := false 
+				duplicateConfirm := false
 				if toId == myId {
 					for _, ConfirmedId := range currentConf {
 						if ConfirmedId == fromId {
@@ -129,11 +130,10 @@ func checkForDuplicate(rxMsg Message) bool {
 			PrevRxMsgIds[rxMsg.ElevId] = rxMsg.MsgId
 			return false
 		}
-	} else { 
-		PrevRxMsgIds[rxMsg.ElevId] = rxMsg.MsgId //If no messages have been recieved earlier
+	} else {
+		PrevRxMsgIds[rxMsg.ElevId] = rxMsg.MsgId
 		return false
 	}
 	return true
 
 }
- 
