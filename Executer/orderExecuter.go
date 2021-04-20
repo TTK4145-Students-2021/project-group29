@@ -21,7 +21,6 @@ func InitElev() {
 }
 
 func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkChannels) {
-	// Initializing elevator
 	elev := Elevator{
 		Id:         GetElevIP(),
 		Floor:      hw.GetFloor(),
@@ -112,7 +111,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					obstructionCounter++
-					if obstructionCounter == 3 {
+					if obstructionCounter == 3 { // Reass
 						obstructionCounter = 0
 						if elev.Mobile {
 							elev.Mobile = false
