@@ -1,6 +1,6 @@
 # Assigner-module
 
-This module takes care of buttonpresses provoked by hardware, assigning or reassigning them to elevators based on a cost function. It is responsible for:
+This module takes care of button presses provoked by hardware, assigning or reassigning them to elevators based on a cost function. It is responsible for:
 
 - Recieving, updating and sending the current states, directions, positions and orders of all elevators, both locally and remotely.   
     - This information is stored in the map *AllElevs* described below
