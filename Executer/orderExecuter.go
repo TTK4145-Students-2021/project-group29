@@ -9,7 +9,7 @@ import (
 )
 
 func InitElev() {
-	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]), NumFloors)
+	hw.Init(fmt.Sprintf("localhost:%s", os.Args[1]), NUMFLOORS)
 	clearAllLights()
 
 	hw.SetMotorDirection(hw.MD_Down) // Moving down to the closest floor if elevator is in-between floors
@@ -26,11 +26,11 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 		Dir:        hw.MD_Stop,
 		State:  IDLE,
 		Online:     false,
-		OrderQueue: [NumFloors][NumButtons]bool{},
+		OrderQueue: [NUMFLOORS][NUMBUTTONS]bool{},
 		Mobile:     true,
 	}
 	
-	doorTimeout := time.NewTimer(DoorOpenTime * time.Millisecond)
+	doorTimeout := time.NewTimer(DOOROPENTIME * time.Millisecond)
 	doorTimeout.Stop()
 
 	engineFailure := time.NewTimer(3 * time.Second)
@@ -50,7 +50,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 				elev.Id = newOrder.Id 
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
-					doorTimeout.Reset(DoorOpenTime * time.Millisecond)
+					doorTimeout.Reset(DOOROPENTIME * time.Millisecond)
 				} else {
 					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 					elev.State = MOVING
@@ -75,7 +75,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 					rememberDir = elev.Dir
 					elev.Dir = hw.MD_Stop
 					elev.State = DOOROPEN
-					doorTimeout.Reset(DoorOpenTime * time.Millisecond)
+					doorTimeout.Reset(DOOROPENTIME * time.Millisecond)
 					engineFailure.Stop()
 				} else {
 					engineFailure.Reset((3 * time.Second))
@@ -96,7 +96,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 			case newOrder := <-orderChan.LocalOrder:
 				if elev.Floor == newOrder.Floor {
 					elev.State = DOOROPEN
-					doorTimeout.Reset(DoorOpenTime * time.Millisecond)
+					doorTimeout.Reset(DOOROPENTIME * time.Millisecond)
 				} else {
 					elev.OrderQueue[newOrder.Floor][newOrder.Button] = true
 				}
@@ -105,7 +105,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 				obstructed := hw.GetObstruction()
 				elev.Dir = ChooseDirection(elev, rememberDir)
 				if obstructed {
-					doorTimeout.Reset(DoorOpenTime * time.Millisecond) 
+					fmt.Println("OBSTRUCTED")
+					doorTimeout.Reset(DOOROPENTIME * time.Millisecond) 
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					obstructionCounter++
@@ -140,8 +141,8 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 
 func clearAllLights() {
 	hw.SetDoorOpenLamp(false)
-	for floor := 0; floor < NumFloors; floor++ {
-		for btn := 0; btn < NumButtons; btn++ {
+	for floor := 0; floor < NUMFLOORS; floor++ {
+		for btn := 0; btn < NUMBUTTONS; btn++ {
 			hw.SetButtonLamp(hw.ButtonType(btn), floor, false)
 		}
 	}

@@ -20,7 +20,7 @@ func writeToBackup(elev Elevator) {
 
 	caborders := make([]bool, 0)
 	for _, row := range elev.OrderQueue {
-		caborders = append(caborders, row[NumButtons-1])
+		caborders = append(caborders, row[NUMBUTTONS-1])
 	}
 	cabordersString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(caborders)), " "), "[]")
 	_, err = f.WriteString(cabordersString)
@@ -59,8 +59,8 @@ func errors(err error) {
 // Functions to handle logic of single elevator executer
 
 func ordersAbove(elev Elevator) bool {
-	for floor := elev.Floor + 1; floor < NumFloors; floor++ {
-		for btn := 0; btn < NumButtons; btn++ {
+	for floor := elev.Floor + 1; floor < NUMFLOORS; floor++ {
+		for btn := 0; btn < NUMBUTTONS; btn++ {
 			if elev.OrderQueue[floor][btn] {
 				return true
 			}
@@ -71,7 +71,7 @@ func ordersAbove(elev Elevator) bool {
 
 func ordersBelow(elev Elevator) bool {
 	for floor := 0; floor < elev.Floor; floor++ {
-		for btn := 0; btn < NumButtons; btn++ {
+		for btn := 0; btn < NUMBUTTONS; btn++ {
 			if elev.OrderQueue[floor][btn] {
 				return true
 			}

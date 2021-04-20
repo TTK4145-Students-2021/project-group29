@@ -30,13 +30,12 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			} else { // If no other elevator is online, go in "single-elevator mode", send order directly to local executer
 				newOrder := Order{Floor: buttonPress.Floor, Button: buttonPress.Button, Id: myId}
 				orderChan.LocalOrder <- newOrder
-				fmt.Println("Going into single mode")
+				fmt.Println("SINGLE ELEVATOR MODE")
 			}
 		case updatedElev := <-orderChan.RecieveElevUpdate:
 			AllElevs[updatedElev.Id] = updatedElev
 			setAllLights()
 		case myElev := <-netChan.InmobileElev:
-			fmt.Println(myElev.Mobile)
 			AllElevs[myElev.Id] = myElev
 			setAllLights()
 			reassignOrders(myElev, orderChan) 
@@ -56,7 +55,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 						Dir:        hw.MD_Stop,
 						State:  IDLE,
 						Online:     true,
-						OrderQueue: [NumFloors][NumButtons]bool{},
+						OrderQueue: [NUMFLOORS][NUMBUTTONS]bool{},
 						Mobile:     true,
 					}
 					AllElevs[peer.New] = elev
@@ -68,7 +67,6 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 				NumElevs++
 			}
 			if len(peer.Lost) > 0 { // If elevator is lost, going offline
-				fmt.Println("1")
 				for _, lostPeer := range peer.Lost { 
 					elev := AllElevs[lostPeer]
 					elev.Online = false
@@ -77,7 +75,6 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 					}
 					AllElevs[lostPeer] = elev
 					NumElevs--
-					fmt.Println("before")
 					reassignOrders(elev, orderChan)
 				}
 			}
@@ -102,11 +99,9 @@ func costFunction(allElevs map[string]Elevator, btn hw.ButtonType, floor int) st
 }
 
 func sendReassignedOrder(absentElev Elevator, orderChan OrderChannels) {
-	for floor := 0; floor < NumFloors; floor++ {
-		for btn := 0; btn < NumButtons-1; btn++ { // Only reassigning hall up and hall down orders (not cab orders)
-			fmt.Println("Have true")
+	for floor := 0; floor < NUMFLOORS; floor++ {
+		for btn := 0; btn < NUMBUTTONS-1; btn++ { // Only reassigning hall up and hall down orders (not cab orders)
 			if absentElev.OrderQueue[floor][btn] && !duplicateOrder(hw.ButtonType(btn), floor){
-				fmt.Println("in reas")
 				id := costFunction(AllElevs, hw.ButtonType(btn), floor)
 				newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
 				orderChan.SendOrder <- newOrder
@@ -122,7 +117,6 @@ func reassignOrders(absentElev Elevator, orderChan OrderChannels) {
 		for id, elev := range AllElevs {
 			if elev.Online {
 				if id == myId {
-					fmt.Println(myId)
 					sendReassignedOrder(absentElev,orderChan)
 				}
 				break
@@ -151,11 +145,11 @@ func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
 		}
 		break
 	case MOVING:
-		duration += TravelTime / 2
+		duration += TRAVELTIME / 2
 		elev.Floor += int(elev.Dir)
 		break
 	case DOOROPEN:
-		duration -= DoorOpenTime / 2
+		duration -= DOOROPENTIME / 2
 	}
 	for {
 		if executer.ShouldStop(elev) {
@@ -164,18 +158,18 @@ func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
 			if arrivedAtRequest {
 				return duration
 			}
-			duration += DoorOpenTime
+			duration += DOOROPENTIME
 			elev.Dir = executer.ChooseDirection(elev, elev.Dir)
 		}
 		elev.Floor += int(elev.Dir)
-		duration += TravelTime
+		duration += TRAVELTIME
 	}
 }
 
 func setAllLights() {
 	var lightsOff bool
-	for floor := 0; floor < NumFloors; floor++ {
-		for btn := 0; btn < NumButtons; btn++ {
+	for floor := 0; floor < NUMFLOORS; floor++ {
+		for btn := 0; btn < NUMBUTTONS; btn++ {
 			for id, elev := range AllElevs {
 				SetLights[id] = false
 				if btn == hw.BT_Cab && id != myId { 

@@ -57,8 +57,8 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 						}
 					}
 				}
-				if packageNotSent == LostPackageCounter {
-					fmt.Println("Package not sent..")
+				if packageNotSent == LOSTPACKAGECOUNTER {
+					fmt.Println("PACKAGE NOT SENT")
 					txMsg.OrderMsg.Id = myId
 					orderChan.LocalOrder <- txMsg.OrderMsg // Sending order to elevator that has recieved the button press
 					MsgQueue = MsgQueue[1:]

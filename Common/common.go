@@ -11,11 +11,11 @@ import (
 var NumElevs = 0
 
 const (
-	NumFloors    		= 4
-	NumButtons   		= 3
-	TravelTime   		= 2500
-	DoorOpenTime 		= 3000
-	LostPackageCounter	= 100
+	NUMFLOORS    		= 4
+	NUMBUTTONS   		= 3
+	TRAVELTIME   		= 2500
+	DOOROPENTIME 		= 3000
+	LOSTPACKAGECOUNTER	= 50
 )
 
 type ClearOrdersParams struct {
@@ -43,7 +43,7 @@ type Elevator struct {
 	Dir        			hw.MotorDirection 
 	State  			    ElevatorState
 	Online     			bool
-	OrderQueue 			[NumFloors][NumButtons]bool 
+	OrderQueue 			[NUMFLOORS][NUMBUTTONS]bool 
 	Mobile     			bool
 }
 
