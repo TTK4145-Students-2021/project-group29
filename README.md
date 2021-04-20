@@ -73,4 +73,4 @@ Common is an extra module that includes an overview of structs, constants and ch
 
 **Main**
 
-Our **Main-module** is responsible for initializing the elevators, making the necessary channels and setting up the necessary goroutines for the modules mentioned above. 
+Main is responsible for initializing the elevators, making the necessary channels and setting up the necessary goroutines for the modules mentioned above. 
