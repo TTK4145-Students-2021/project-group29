@@ -74,3 +74,14 @@ Common is an extra module that includes an overview of structs, constants and ch
 **Main**
 
 Main is responsible for initializing the elevators, making the necessary channels and setting up the necessary goroutines for the modules mentioned above. 
+
+**Imported libraries**
+
+We have imported several Golang-packages in our implementation of the elevator system. These are:
+- fmt
+- os
+- strings
+- time
+- io/ioutil
+- strconv
+
