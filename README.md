@@ -57,7 +57,7 @@ The Distributer-module consists of a Transmitter and Reciever, that is responsib
 
 **Executer** 
 
-State machine that is responsible for executing and handling orders from the local queue by enrolling the hardware of the elevator. Switching between the three states *IDLE*, DOOROPEN and MOVING. Includes a timer that checks for motor power loss, as well as a function for writing the recieved cab orders to a backup-file in case of power/software crash. 
+State machine that is responsible for executing and handling orders from the local queue by enrolling the hardware of the elevator. Switching between the three states *IDLE*, *DOOROPEN* and *MOVING*. Includes a timer that checks for motor power loss, as well as a function for writing the recieved cab orders to a backup-file in case of power/software crash. 
 
 **Network** 
 
