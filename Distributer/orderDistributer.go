@@ -98,7 +98,7 @@ func Reciever(netChan NetworkChannels, orderChan OrderChannels) {
 			case ELEVSTATUS:
 				orderChan.RecieveElevUpdate <- rxMsg.ElevMsg
 			case CONFIRMATION:
-				ArrayId := strings.Split(rxMsg.ElevId, "FROM") // The recieved message consists of the id of the peer that sends and gets the confirmation
+				ArrayId := strings.Split(rxMsg.ElevId, "FROM") // The recieved message consists of the id of the peer that sends and recieves the confirmation
 				toId := ArrayId[0]
 				fromId := ArrayId[1]
 				duplicateConfirm := false

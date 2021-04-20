@@ -182,7 +182,7 @@ func setAllLights() {
 				}
 			}
 			lightsOff = true
-			for _, val := range SetLights { // If one of the elevators has an existing order in SetLights-map, do not turn of lights
+			for _, val := range SetLights { // If one of the elevators has an existing order in SetLights-map, do not turn off lights
 				if val == true {
 					lightsOff = false
 				}
