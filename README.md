@@ -24,6 +24,7 @@ Orders should be distributed across the elevators in a reasonable way, with free
 The elevator should only stop where it has an order. The hall call upward and call downward buttons should behave differently. 
 
 - **The lights and buttons should function as expected**
+- 
 Hall call buttons should summon an elevator, where the hall buttons should show the same thing at all workspaces. The cab button light should not be shared between elevators. The "door open" lamp is used as a substitute for an actual door, while the obstruction switch should substitute the door obstruction sensor inside the elevator.
 
 There were some permitted assumptions that would always be true during testing:
