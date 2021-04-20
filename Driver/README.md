@@ -3,4 +3,4 @@ The *Driver-module* is delivered code responsible for interacting with the hardw
 
 - Set-functions for lights and motor direction
 - Get-functions for buttons and floor
-- Reading (goroutines) buttons and floor sensor
+- Reading buttons and floor sensor (goroutines)

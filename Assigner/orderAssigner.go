@@ -18,7 +18,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 		case buttonPress := <-hwChan.HwButtons:
 			id := "No ID"
 			myElev := AllElevs[myId]
-			if myElev.Online && NumElevs > 1 { // More than one elevator is online, distribute order over network
+			if myElev.Online && NumElevs > 1 { // More than one elevator is online, send order to distributer
 				if buttonPress.Button == hw.BT_Cab {
 					id = myId
 				} else {
@@ -101,7 +101,7 @@ func costFunction(allElevs map[string]Elevator, btn hw.ButtonType, floor int) st
 
 func sendReassignedOrder(absentElev Elevator, orderChan OrderChannels) {
 	for floor := 0; floor < NUMFLOORS; floor++ {
-		for btn := 0; btn < NUMBUTTONS-1; btn++ { // Only reassigning hall up and hall down orders (not cab orders)
+		for btn := 0; btn < NUMBUTTONS-1; btn++ { // Only reassigning hall up- and down orders (not cab orders)
 			if absentElev.OrderQueue[floor][btn] && !duplicateOrder(hw.ButtonType(btn), floor) {
 				id := costFunction(AllElevs, hw.ButtonType(btn), floor)
 				newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
@@ -175,6 +175,7 @@ func setAllLights() {
 				if btn == hw.BT_Cab && id != myId {
 					continue
 				}
+				// All cases where the light should be set
 				if elev.OrderQueue[floor][btn] && ((elev.Online && elev.Mobile) || (!elev.Online && id == myId) || (!elev.Mobile && btn == hw.BT_Cab)) {
 					SetLights[id] = true
 					hw.SetButtonLamp(hw.ButtonType(btn), floor, true)
