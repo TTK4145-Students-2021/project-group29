@@ -67,7 +67,7 @@ func Transmitter(netChan NetworkChannels, orderChan OrderChannels) {
 					currentConf = make([]string, 0)
 				} else {
 					if onlineElevs == elevsConfirmed || txMsg.MsgType == ELEVSTATUS {
-						if txMsg.MsgType == ELEVSTATUS { // We do not need ack on elevator updates
+						if txMsg.MsgType == ELEVSTATUS { // We do not need acknowledgement on elevator updates
 							netChan.BcastMsg <- txMsg
 						}
 						MsgQueue = MsgQueue[1:]

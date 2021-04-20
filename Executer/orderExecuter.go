@@ -38,7 +38,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 	engineFailure.Stop()
 
 	var rememberDir hw.MotorDirection
-	var obstructionCounter = 0
+	var obstructionCounter = 0 // Counter to check if the elevator has been obstructed for too long
 
 	for {
 		switch elev.State {
