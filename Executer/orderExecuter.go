@@ -111,7 +111,7 @@ func RunElevator(hwChan HardwareChannels, orderChan OrderChannels, netChan Netwo
 					elev.State = DOOROPEN
 					elev.Dir = hw.MD_Stop
 					obstructionCounter++
-					if obstructionCounter == 3 { // Reassign order
+					if obstructionCounter == 3 {
 						obstructionCounter = 0
 						if elev.Mobile {
 							elev.Mobile = false
