@@ -7,63 +7,58 @@ Nina V Nyegaarden     ninavn@stud.ntnu.no
 Helene T Lønvik       helenetl@stud.ntnu.no
 ```
 
-**Problem/Project description**
+ ## Problem/Project description**
 
-This repostory creates software for controlling `n` elevators working in parallel across `m` floors. To do this some requirements must be fulfilled. Those are:
+This repostory creates software for controlling `n` elevators working in parallel across `m` floors. There were some requirements that had to be fulfilled in order to acquire a logic elevator system:
 
-**No order are lost**
+- **No order are lost**
 
-Once the light on a call button is turned on, an elevator should arrive at that floor. 
+Once the light on a hall call button is turned on, an elevator should arrive at that floor. This means handling network packet loss, losing network connection entirely, software that crashes and losing power. 
 
-**Multiple elevators shoul be more efficient than one**
+- **Multiple elevators should be more efficient than one**
 
-Orders should be distributed across the elevators by a cost function. Cab orders should not be distributed, but handled by the current peer.
+Orders should be distributed across the elevators in a reasonable way, with a free choice of cost function.
 
-**An individual elevator should behave sensibily and efficiently**
+- **An individual elevator should behave sensibily and efficiently**
 
-Elivator should only stop where it has an order. No stopping at every floor "Just to be safe"
+Elevator should only stop where it has an order. The hall call upward and call downward buttons should behave differently. 
 
-**The lights and buttons should function as expected**
+- **The lights and buttons should function as expected**
+Hall call buttons should summon an elevator, where the hall buttons should show the same thing at all workspaces. The cab button light should not be shared between elevators. The "door open" lamp is used as an subsistute for an actual door, while the obstruction switch should substitute the door obstruction sensor inside the elevator.
 
-Hall call buttons should summon an elevator. When pressing a button the corresponding light should be switched on. If the light is a hall call button, all the elevators light coresponding to this button should be swithced on.
-
-
+There were some permitted assumptions that would always be true during testing:
+1. At least one elevator is always working normally
+2. No multiple simultaneous errors: Only one error happens at a time, but the system must still return to a fully operational state after this error.
+3. No network partitioning: There will never be a situation where there are multiple sets of two or more elevators with no connection between them.
+4. Cab call redundancy with a single elevator is not required.
 
 ## Solution
 **Programming language**
-
-We desided to use the programming language golang. This was chosen because it is easy to implement networking and the logic was easy to understand. ...
+Our real-time system has been programmed in Go. Golang has an elegant built-in concurrency, goroutines, that enables the ability to run threads concurrently and independent of each other. Go is also a simple language to understand, and allows for other programmers to quickly understand anyone else's code. 
 
 **Communication**
+Our solution has an implemented peer-to-peer architecture, where every elevator is both a server and a client. With this architecture, all the elevators should always be up to date with the states and orders of the other elevators. If one of the elevators disconnects from the network, the orders will be reassigned by one of the other peers that is still connected. 
 
-To communicate we use peer to peer. This allows every elevator to know the other elevators states at any point in time. Every elevators also knows every order and who the order is assigned to. This wasy, the orders can easily be reassigned if one elevator diconnecs and therefore cannot serve the order.
-To communicate we are using UDP to broadcast the messages to the other elevators. To prevent packet loss, a confirmation message is sent back. If not all the confirmation messages are resived in a period of time, the message are brodcasted again.  
+UDP, User Datagram Protocol, is the communications protocol being used in this solution. UDP was chosen because it is a protocol compatible with packet broadcasts for sending to all of the elevators on the network. The Network-module that is described below is a handed-out module with an included UDP-implementation. However, unlike TCP, UDP do not automatically send acknowledgments to the messages being sent, that is crucial for preventing severe packet loss. The acknowledgement-logic is implemented by ourselves in the Distributer-module described below. 
+
 
 ### System
-Our system contains of three head modules. Theese are Assigner, Distributor and Executer, and each take care of their own part of the elevator design.
+Our elevator-system consists of three implemented main modules: **Assigner**, **Distributer** and **Executer**. The system also includes the handed-out modules **Network** and **Driver**, that is responsible for respectively the communication between the servers and controlling the elevator hardware.  
 
 **Assigner** 
+The Assigner-module has the responsibility of assigning orders recieved from hardware on their local elevator by calculating a cost function based on their respective times to serve the request. The module sends the order to the Distributer-module that is responsible for distributing the orders over the network. The Assigner is also responsible for reassigning orders if one of the other peers is disconnected or if their own peer is experiencing motor power loss or is obstructed for too long. In order for the Assigner to assign and reassign the orders, the module always recieves updates on the states of the elevators that are connected to the network. The lights of the elevators is also set in this module. 
 
-Responsible for assigning orders recieved on local elevator and sending orders to OrderDistributor. If an elevator goes offline from Network, OrderAssigner will reassign orders. OrderAssigner also has total overview of states of all elevators and an backup of all orders in case an elevator is going offline. 
-
-**Distributor** 
-
-Responsible for distributing orders and states over the network using the given Network module. Handles network packet loss.
+**Distributer** 
+The Distributer-module consists of a Transmitter and Reciever, that is responsible for transmitting and recieving orders and states to and from the other elevators over the network. The module is broadcasting and recieving message-structs over channels that is connected to the handed-out module Network. The Distributer is also handling cases of network packet loss, where acknowledgments on order-messages ensures that no orders are lost, as is required in the problem description. 
 
 **Executer** 
-
-State machine that executes orders from local queue. Includes a timer that checks for engine failure of the local motor.
-
-In addition to theese module there are the handed out modules Network and Driver. We also have implemented a common file which holds structs and channels that all the modules use.
+State machine that is responsible for executing and handling orders from the local queue by enrolling the hardware of the elevator. Switching between the three states *IDLE*, DOOROPEN and MOVING. Includes a timer that checks for motor power loss, as well as a function for writing the recieved cab orders to a backup-file in case of power/software crash. 
 
 **Network** 
-
-Communication between peers
+Delivered code. Includes functions for broadcasting and recieving messages over the network, as well as functions to recieve and enable sending of peer-updates to other peers on the network. 
 
 **Driver** 
-
-Interface between software and hardware
+Delivered code. Low-level functionality for interacting with the hardware. Includes functions the Executer uses for setting the hardware as well as functions for polling the buttons that is used in the Assigner-module.  
 
 **Common** 
-
-Structs and channels that are used in the modules
+Common is an extra module that includes an overview of structs, constants and channels that are used in the Assigner, Distributer and Executer-module.  
