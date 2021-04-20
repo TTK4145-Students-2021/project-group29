@@ -36,6 +36,7 @@ func Assigner(hwChan HardwareChannels, orderChan OrderChannels, netChan NetworkC
 			AllElevs[updatedElev.Id] = updatedElev
 			setAllLights()
 		case myElev := <-netChan.InmobileElev:
+			fmt.Println(myElev.Mobile)
 			AllElevs[myElev.Id] = myElev
 			setAllLights()
 			reassignOrders(myElev, orderChan) 
@@ -100,25 +101,37 @@ func costFunction(allElevs map[string]Elevator, btn hw.ButtonType, floor int) st
 
 }
 
-func reassignOrders(absentElev Elevator, orderChan OrderChannels) { 
-	for id, elev := range AllElevs {
-		if elev.Online {
-			if id == myId {
-				for floor := 0; floor < NumFloors; floor++ {
-					for btn := 0; btn < NumButtons-1; btn++ { // Only reassigning hall up and hall down orders (not cab orders)
-						fmt.Println("Have true")
-						if absentElev.OrderQueue[floor][btn] && !duplicateOrder(hw.ButtonType(btn), floor){
-							fmt.Println("in reas")
-							id := costFunction(AllElevs, hw.ButtonType(btn), floor)
-							newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
-							orderChan.SendOrder <- newOrder
-						}
-					}
-				}
+func sendReassignedOrder(absentElev Elevator, orderChan OrderChannels) {
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons-1; btn++ { // Only reassigning hall up and hall down orders (not cab orders)
+			fmt.Println("Have true")
+			if absentElev.OrderQueue[floor][btn] && !duplicateOrder(hw.ButtonType(btn), floor){
+				fmt.Println("in reas")
+				id := costFunction(AllElevs, hw.ButtonType(btn), floor)
+				newOrder := Order{Floor: floor, Button: hw.ButtonType(btn), Id: id}
+				orderChan.SendOrder <- newOrder
 			}
-			break
 		}
 	}
+}
+
+
+func reassignOrders(absentElev Elevator, orderChan OrderChannels) { 
+	switch absentElev.Mobile{
+	case true:
+		for id, elev := range AllElevs {
+			if elev.Online {
+				if id == myId {
+					fmt.Println(myId)
+					sendReassignedOrder(absentElev,orderChan)
+				}
+				break
+			}
+		}
+	case false:
+		sendReassignedOrder(absentElev,orderChan)
+	}
+	
 }
 
 func timeToServeRequest(elev Elevator, btn hw.ButtonType, floor int) int {
