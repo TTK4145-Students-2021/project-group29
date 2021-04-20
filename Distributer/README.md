@@ -4,7 +4,7 @@ A module responsible for distributing and synchronizing the connected elevators 
 
 - Acknowledges orders assigned by the **Assigner** and sends the acknowledged order to the **Executer**.
 - Sends elevator statuses to the other elevators given by the **Executer**
-- Handles packet loss in order to ensure that order is acknowledged by all peers
+- Handles packet loss by ensuring that order is acknowledged by all peers
     - If package is not confirmed by all peers after a certain amount of time, the peer that assigned the order executes order
 
 For ensuring that all orders are acknowledged by all peers, we implemented a *message queue*, where the first element of the queue is being transmitted to the other peers in millisecond-rate. When a peer is "answering back" with an acknowledgement on the order it has recieved, the acknowledgement is added in the array *CurrentConf*. When all peers have confirmed the order, the *message queue* will pop the first element of the queue and continue with sending the next message in line. This will ensure that no order-messages is being lost over the network.

@@ -11,13 +11,13 @@ The orderExcecuter initializes the hardware when the program is started and clea
 
 ## Struct and enum used in Executer-module
 ELEVATOR        | Type
---------------- | ---------------------------
+--------------- | ----------------------------
 Id              | string
 Floor           | int
 Dir             | MotorDirection
 State           | ElevatorState
 Online          | string
-OrderQueue      | [NUMFLOORS][NUMBUTTONS]bool
+OrderQueue      | [NUMFLOORS][NUMBUTTONS] bool
 Mobile          | bool
 
 
@@ -28,4 +28,4 @@ MOVING          |
 DOOR OPEN       | 
 
 
-<img src="../statesElev.jpg">
+<img src="https://github.com/TTK4145-Students-2021/project-group29/blob/README/statesElev.png">
