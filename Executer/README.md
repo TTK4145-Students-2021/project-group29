@@ -10,7 +10,7 @@ The orderExcecuter initializes the hardware when the program is started and clea
 
 
 ## Struct and enum used in Executer-module
-ELEVATOR        | type
+ELEVATOR        | Type
 --------------- | ---------------------------
 Id              | string
 Floor           | int
